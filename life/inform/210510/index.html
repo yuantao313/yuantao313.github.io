@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   
   
-  <title>linux-hint | 一些知识点</title>
+  <title>210510 | 一些知识点</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="description" content="When apt update, it shows The following signatures couldn&#39;t be verified because the public key is not available: NO_PUBKEY 0123456789ABCDEF  An deprecated method  1apt-key adv --recv-keys --keyserve">
+  <meta name="description" content="There is never a weird Saturday which is a Wednesday but like a Friday.[1]    Saturday, in the dairy. Wednesday, by the syllabus. Friday, means the end of the week. ↩︎">
 <meta property="og:type" content="article">
-<meta property="og:title" content="linux-hint">
-<meta property="og:url" content="http://blog.fumarase.xyz/hint/linux-hint/index.html">
+<meta property="og:title" content="210510">
+<meta property="og:url" content="http://blog.fumarase.xyz/life/inform/210510/index.html">
 <meta property="og:site_name" content="一些知识点">
-<meta property="og:description" content="When apt update, it shows The following signatures couldn&#39;t be verified because the public key is not available: NO_PUBKEY 0123456789ABCDEF  An deprecated method  1apt-key adv --recv-keys --keyserve">
+<meta property="og:description" content="There is never a weird Saturday which is a Wednesday but like a Friday.[1]    Saturday, in the dairy. Wednesday, by the syllabus. Friday, means the end of the week. ↩︎">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2023-01-01T12:00:00.000Z">
-<meta property="article:modified_time" content="2023-01-27T17:29:58.876Z">
+<meta property="article:published_time" content="2021-05-10T20:00:00.000Z">
+<meta property="article:modified_time" content="2023-01-27T17:29:58.880Z">
 <meta property="article:author" content="Yuan Tao">
-<meta property="article:tag" content="hint">
+<meta property="article:tag" content="inform">
 <meta name="twitter:card" content="summary">
   
     <link rel="alternate" href="/atom.xml" title="一些知识点" type="application/atom+xml">
@@ -74,10 +74,10 @@
 </header>
 
       <div class="outer">
-        <section id="main"><article id="post-hint/linux-hint" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+        <section id="main"><article id="post-life/inform/210510" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
-    <a href="/hint/linux-hint/" class="article-date">
-  <time class="dt-published" datetime="2023-01-01T12:00:00.000Z" itemprop="datePublished">2023-01-01</time>
+    <a href="/life/inform/210510/" class="article-date">
+  <time class="dt-published" datetime="2021-05-10T20:00:00.000Z" itemprop="datePublished">2021-05-10</time>
 </a>
     
   </div>
@@ -88,7 +88,7 @@
         
   
     <h1 class="p-name article-title" itemprop="headline name">
-      linux-hint
+      210510
     </h1>
   
 
@@ -96,28 +96,23 @@
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <ul>
-<li>
-<p>When <code>apt update</code>, it shows <code>The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 0123456789ABCDEF</code></p>
-<ul>
-<li>An deprecated method  <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-key adv --recv-keys --keyserver keyserver.ubuntu.com  0123456789ABCDEF</span><br></pre></td></tr></table></figure>
+        <p>There is never a weird Saturday which is a Wednesday but like a Friday.<sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup></p>
+<hr class="footnotes-sep">
+<section class="footnotes">
+<ol class="footnotes-list">
+<li id="fn1" class="footnote-item"><p>Saturday, in the dairy. Wednesday, by the syllabus. Friday, means the end of the week. <a href="#fnref1" class="footnote-backref">↩︎</a></p>
 </li>
-<li>Fix the warning from the deprecated method above broughts  <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> KEY <span class="keyword">in</span> $( \</span><br><span class="line">    apt-key --keyring /etc/apt/trusted.gpg list \</span><br><span class="line">    | grep -E <span class="string">&quot;(([ ]&#123;1,2&#125;(([0-9A-F]&#123;4&#125;)))&#123;10&#125;)&quot;</span> \</span><br><span class="line">    | <span class="built_in">tr</span> -d <span class="string">&quot; &quot;</span> \</span><br><span class="line">    | grep -E <span class="string">&quot;([0-9A-F])&#123;8&#125;\b&quot;</span> \</span><br><span class="line">); <span class="keyword">do</span></span><br><span class="line">K=<span class="variable">$&#123;KEY:(-8)&#125;</span></span><br><span class="line">apt-key <span class="built_in">export</span> <span class="variable">$K</span> \</span><br><span class="line">| sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/imported-from-trusted-gpg-<span class="variable">$K</span>.gpg</span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
-</li>
-<li>Proper method<br>
-I don’t know.</li>
-</ul>
-</li>
-</ul>
+</ol>
+</section>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/hint/linux-hint/" data-id="cldesurxe0000c6p35o6z283d" data-title="linux-hint" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/life/inform/210510/" data-id="cldesurxy000pc6p3hcfl3593" data-title="210510" class="article-share-link">Teilen</a>
       
       
       
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/hint/" rel="tag">hint</a></li></ul>
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/inform/" rel="tag">inform</a></li></ul>
 
     </footer>
   </div>
@@ -125,19 +120,19 @@ I don’t know.</li>
     
 <nav id="article-nav">
   
-    <a href="/life/inform/230109/" id="article-nav-newer" class="article-nav-link-wrap">
+    <a href="/life/collection/bai/210520-This-Day/" id="article-nav-newer" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Neuer</strong>
       <div class="article-nav-title">
         
-          2023-Inform-1
+          “This Day”
         
       </div>
     </a>
   
   
-    <a href="/hint/macos-hint/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/life/collection/bai/210426-Echo/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Älter</strong>
-      <div class="article-nav-title">macos-hint</div>
+      <div class="article-nav-title">“Echo”</div>
     </a>
   
 </nav>
