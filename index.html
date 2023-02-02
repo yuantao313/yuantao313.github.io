@@ -93,25 +93,16 @@
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <span id="more"></span>
-<ul>
-<li>
-<p>When <code>apt update</code>, it shows <code>The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 0123456789ABCDEF</code></p>
-<ul>
-<li>An deprecated method  <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">apt-key adv --recv-keys --keyserver keyserver.ubuntu.com  0123456789ABCDEF</span><br></pre></td></tr></table></figure>
-</li>
-<li>Fix the warning from the deprecated method above broughts  <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> KEY <span class="keyword">in</span> $( \</span><br><span class="line">    apt-key --keyring /etc/apt/trusted.gpg list \</span><br><span class="line">    | grep -E <span class="string">&quot;(([ ]&#123;1,2&#125;(([0-9A-F]&#123;4&#125;)))&#123;10&#125;)&quot;</span> \</span><br><span class="line">    | <span class="built_in">tr</span> -d <span class="string">&quot; &quot;</span> \</span><br><span class="line">    | grep -E <span class="string">&quot;([0-9A-F])&#123;8&#125;\b&quot;</span> \</span><br><span class="line">); <span class="keyword">do</span></span><br><span class="line">K=<span class="variable">$&#123;KEY:(-8)&#125;</span></span><br><span class="line">apt-key <span class="built_in">export</span> <span class="variable">$K</span> \</span><br><span class="line">| sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/imported-from-trusted-gpg-<span class="variable">$K</span>.gpg</span><br><span class="line"><span class="keyword">done</span></span><br></pre></td></tr></table></figure>
-</li>
-<li>Proper method<br>
-I don’t know.</li>
-</ul>
-</li>
-</ul>
-
+        <h1></h1>
+        
+          <p class="article-more-link">
+            <a href="/hint/linux-hint/#more">Read More</a>
+          </p>
+        
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/hint/linux-hint/" data-id="cldlo1djz0000eiou9gfa4rji" data-title="linux-hint" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/hint/linux-hint/" data-id="cldmw3vyq0000bboqeyzf4a76" data-title="linux-hint" class="article-share-link">Teilen</a>
       
       
       
@@ -147,32 +138,16 @@ I don’t know.</li>
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <span id="more"></span>
-<ul>
-<li>
-<p>使<code>sudo</code>可以使用Touch ID进行认证<br>
-强制编辑<code>/etc/pam.d/sudo</code><br>
-首行添加<code>auth    sufficient    pam_tid.so</code></p>
-</li>
-<li>
-<p>删除某些软件卸载后残留在启动台的图标</p>
-</li>
-</ul>
-<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sqlite3 db <span class="string">&quot;delete from apps where title=&#x27;[图标名称]&#x27;;&quot;</span>&amp;&amp;killall Dock</span><br></pre></td></tr></table></figure>
-<ul>
-<li>显示隐藏文件
-<ul>
-<li>临时显示<br>
-<code>⌘Command</code>+<code>⇧Shift</code>+<code>.</code></li>
-<li>设为默认</li>
-</ul>
-  <figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">defaults write com.apple.finder AppleShowAllFiles -bool <span class="literal">true</span></span><br></pre></td></tr></table></figure></li>
-</ul>
-
+        <h1></h1>
+        
+          <p class="article-more-link">
+            <a href="/hint/macos-hint/#more">Read More</a>
+          </p>
+        
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/hint/macos-hint/" data-id="cldlo1dk40001eioufbgb66of" data-title="macos-hint" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/hint/macos-hint/" data-id="cldmw3vyv0001bboqhf0karuh" data-title="macos-hint" class="article-share-link">Teilen</a>
       
       
       
@@ -208,63 +183,16 @@ I don’t know.</li>
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <span id="more"></span>
-<ul>
-<li>A Classic Table about Character Encoding</li>
-</ul>
-<table>
-<thead>
-<tr>
-<th>名称</th>
-<th>示例</th>
-<th>特点</th>
-<th>产生原因</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>古文码</td>
-<td>鎴戝甯冧釜浜嬪効锛屾垜鏄釜鍌婚€硷紒娌℃瘺鐥呫€�</td>
-<td>大都为不认识的古文，并夹杂日文、韩文</td>
-<td>以<code>GBK</code>方式读取<code>UTF-8</code>编码的中文</td>
-</tr>
-<tr>
-<td>口字码</td>
-<td>���������¶������Ǹ�ɵ�ƣ�ûë����</td>
-<td>大部分宇符为小方块</td>
-<td>以<code>UTF-8</code>方式读取<code>GBK</code>编码的中文</td>
-</tr>
-<tr>
-<td>符号码</td>
-<td>æå®£å¸ä¸ªäºå¿ï¼ææ¯ä¸ªå»é¼ï¼æ²¡æ</td>
-<td>大部分字符为各种符号</td>
-<td>以<code>ISO8859-1</code>方式读取<code>UTF-8</code>编码的中文</td>
-</tr>
-<tr>
-<td>拼音码</td>
-<td>ÎÒÐû²¼¸öÊÂ¶ù£¬ÎÒÊÇ¸öÉµ±Æ£¡Ã»Ã«²¡¡£</td>
-<td>大部分宇符为头顶带有各种类似声调符号的字母</td>
-<td>以<code>ISO8859-1</code>方式读取<code>GBK</code>编码的中文</td>
-</tr>
-<tr>
-<td>问句码</td>
-<td>我宣布个事儿我是个<s>傻??</s></td>
-<td>宇符串长度为偶数时正常，长度为奇数时最后的字符变为问号</td>
-<td>以<code>GBK</code>方式读取<code>UTF-8</code>编码的中文，然后又用<code>UTF-8</code>的格式再次读取</td>
-</tr>
-<tr>
-<td>锟拷码</td>
-<td>锟斤拷锟斤拷锟铰讹拷锟斤拷锟斤拷锟角革拷傻锟狡ｏ拷</td>
-<td>全中文字符，且大部分字符为“锟斤拷”这几个字符</td>
-<td>以<code>UTF-8</code>方式读取<code>GBK</code>编码的中文，然后又用<code>GBK</code>的格式再次读取</td>
-</tr>
-</tbody>
-</table>
-
+        <h1></h1>
+        
+          <p class="article-more-link">
+            <a href="/hint/misc-hint/#more">Read More</a>
+          </p>
+        
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/hint/misc-hint/" data-id="cldlo1dk80003eioub84x70ou" data-title="misc-hint" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/hint/misc-hint/" data-id="cldmw3vyy0003bboqacivhxkw" data-title="misc-hint" class="article-share-link">Teilen</a>
       
       
       
@@ -300,19 +228,16 @@ I don’t know.</li>
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <span id="more"></span>
-<ul>
-<li>在Windows Store中安装PowerShell 7后，其可执行文件的位置</li>
-</ul>
-<p><code>C:\Users\[用户名]\AppData\Local\Microsoft\WindowsApps\Microsoft.PowerShell_8wekyb3d8bbwe\pwsh.exe</code></p>
-<ul>
-<li>启用Windows的OpenSSH Server功能后，更改连接后的默认终端程序</li>
-</ul>
-<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">New-ItemProperty</span> <span class="literal">-Path</span> <span class="string">&quot;HKLM:\SOFTWARE\OpenSSH&quot;</span> <span class="literal">-Name</span> DefaultShell <span class="literal">-Value</span> [终端程序路径] <span class="literal">-PropertyType</span> String <span class="literal">-Force</span></span><br></pre></td></tr></table></figure>
+        <h1></h1>
+        
+          <p class="article-more-link">
+            <a href="/hint/windows-hint/#more">Read More</a>
+          </p>
+        
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/hint/windows-hint/" data-id="cldlo1dk80004eiou6luzdrzn" data-title="windows-hint" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/hint/windows-hint/" data-id="cldmw3vyz0004bboq1sj6dqsp" data-title="windows-hint" class="article-share-link">Teilen</a>
       
       
       
@@ -394,7 +319,7 @@ I don’t know.</li>
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/knowledge/wagashi/" data-id="cldlo1dkk000seiou72fv258h" data-title="Classification of Mochi" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/knowledge/wagashi/" data-id="cldmw3vzc000sbboq1lan4lqs" data-title="Classification of Mochi" class="article-share-link">Teilen</a>
       
       
       
@@ -439,7 +364,7 @@ I don’t know.</li>
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/recollection/Chapter1/" data-id="cldlo1dkt001leiou3gwz6sac" data-title="“Chapter1”" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/recollection/Chapter1/" data-id="cldmw3vzm001lbboq0cz39skz" data-title="“Chapter1”" class="article-share-link">Teilen</a>
       
       
       
@@ -484,7 +409,7 @@ I don’t know.</li>
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/recollection/Chapter2/" data-id="cldlo1dku001neiouefkp0csh" data-title="“Chapter2”" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/recollection/Chapter2/" data-id="cldmw3vzn001nbboqe5fy5abd" data-title="“Chapter2”" class="article-share-link">Teilen</a>
       
       
       
@@ -529,7 +454,7 @@ I don’t know.</li>
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/recollection/Chapter3/" data-id="cldlo1dkv001peiou6hahfcw2" data-title="“Chapter3”" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/recollection/Chapter3/" data-id="cldmw3vzo001pbboq8bu94fx0" data-title="“Chapter3”" class="article-share-link">Teilen</a>
       
       
       
@@ -574,7 +499,7 @@ I don’t know.</li>
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/recollection/Chapter4/" data-id="cldlo1dkv001reiou66j69p9k" data-title="“Chapter4”" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/recollection/Chapter4/" data-id="cldmw3vzp001rbboq12bzh336" data-title="“Chapter4”" class="article-share-link">Teilen</a>
       
       
       
@@ -619,7 +544,7 @@ I don’t know.</li>
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.fumarase.xyz/recollection/Chapter5/" data-id="cldlo1dkw001seiou6y4g8b6o" data-title="“Chapter5”" class="article-share-link">Teilen</a>
+      <a data-url="http://blog.fumarase.xyz/recollection/Chapter5/" data-id="cldmw3vzp001sbboqfhty5yge" data-title="“Chapter5”" class="article-share-link">Teilen</a>
       
       
       
