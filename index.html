@@ -115,12 +115,86 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.yuantao.eu.org/theclosest/" data-id="cm15tqeum000egaq213h76off" data-title="The Closest" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      <a data-url="http://blog.yuantao.eu.org/theclosest/" data-id="cm17tha21000ffsq45iul2rv9" data-title="The Closest" class="article-share-link"><span class="fa fa-share">分享</span></a>
       
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/0xfb97a32f/" rel="tag">0xfb97a32f</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/good/" rel="tag">good</a></li></ul>
 
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-java2cpp" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/java2cpp/" class="article-date">
+  <time class="dt-published" datetime="2024-07-16T08:00:00.000Z" itemprop="datePublished">2024-07-16</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/tech/">tech</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/java2cpp/">java2cpp</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <ul>
+<li>这是一篇测试文章，用于测试hexo对代码的排版效果。</li>
+</ul>
+<h2 id="类初始化"><a href="#类初始化" class="headerlink" title="类初始化"></a>类初始化</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">User</span> <span class="variable">s</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>(<span class="string">&quot;xiaoming&quot;</span>);</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">User <span class="title">s</span><span class="params">(<span class="string">&quot;xiaoming&quot;</span>)</span></span>;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="常见数据结构"><a href="#常见数据结构" class="headerlink" title="常见数据结构"></a>常见数据结构</h2><h3 id="线性"><a href="#线性" class="headerlink" title="线性"></a>线性</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">List&lt;Integer&gt; numbers = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">numbers.add(<span class="number">1</span>);</span><br><span class="line">numbers.remove(<span class="number">2</span>);</span><br><span class="line">numbers.set(<span class="number">3</span>,<span class="number">114514</span>);</span><br><span class="line"><span class="type">int</span> <span class="variable">a</span> <span class="operator">=</span> numbers.get(<span class="number">4</span>);</span><br><span class="line"><span class="type">int</span> <span class="variable">b</span> <span class="operator">=</span> numbers.indexOf(<span class="number">114514</span>);</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">vector&lt;<span class="type">int</span>&gt; numbers;</span><br><span class="line">numbers.<span class="built_in">push_back</span>(<span class="number">1</span>);</span><br><span class="line">numbers.<span class="built_in">erase</span>(numbers.<span class="built_in">begin</span>()<span class="number">+2</span>);</span><br><span class="line">numbers.<span class="built_in">insert</span>(numbers.<span class="built_in">begin</span>()<span class="number">+3</span>,<span class="number">114514</span>);</span><br><span class="line"><span class="type">int</span> a = numbers[<span class="number">4</span>];</span><br><span class="line"><span class="keyword">auto</span> res = <span class="built_in">find</span>(numbers.<span class="built_in">begin</span>(),numbers.<span class="built_in">end</span>(),<span class="number">114514</span>);</span><br><span class="line"><span class="keyword">if</span> (res != numbers.<span class="built_in">end</span>())&#123;</span><br><span class="line">    <span class="type">int</span> b =  res - numbers.<span class="built_in">begin</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="非线性"><a href="#非线性" class="headerlink" title="非线性"></a>非线性</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">HashMap&lt;Integer,String&gt; myMap = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line">myMap.put(<span class="number">1</span>,<span class="string">&quot;xiaoming&quot;</span>);</span><br><span class="line">myMap.put(<span class="number">2</span>,<span class="string">&quot;xiaohong&quot;</span>);</span><br><span class="line"><span class="keyword">if</span>(myMap.containsKey(<span class="number">1</span>))&#123;</span><br><span class="line">    System.out.println(myMap.get(<span class="number">1</span>));</span><br><span class="line">&#125;</span><br><span class="line">myMap.remove(<span class="number">2</span>);</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">unordered_map&lt;<span class="type">int</span>,string&gt; myMap;</span><br><span class="line">myMap[<span class="number">1</span>]=<span class="string">&quot;xiaoming&quot;</span>;</span><br><span class="line">myMap[<span class="number">2</span>]=<span class="string">&quot;xiaohong&quot;</span>;</span><br><span class="line"><span class="keyword">if</span>(myMap.<span class="built_in">find</span>(<span class="number">1</span>)!=myMap.<span class="built_in">end</span>())&#123;</span><br><span class="line">    cout&lt;&lt;myMap[<span class="number">1</span>];</span><br><span class="line">&#125;</span><br><span class="line">myMap.<span class="built_in">erase</span>(<span class="number">2</span>);</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="OOP"><a href="#OOP" class="headerlink" title="OOP"></a>OOP</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 单继承多接口</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Cat</span> <span class="keyword">extends</span> <span class="title class_">Animal</span> <span class="keyword">implements</span> <span class="title class_">Eat</span>, Run&#123;</span><br><span class="line">    <span class="comment">//...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//多继承</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Cat</span>: <span class="keyword">public</span> Eat, <span class="keyword">public</span> Run&#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<h2 id="排序"><a href="#排序" class="headerlink" title="排序"></a>排序</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 需实现Comparable接口</span></span><br><span class="line"><span class="meta">@AllArgsConstructor</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Student</span> <span class="keyword">implements</span> <span class="title class_">Comparable</span> &#123;</span><br><span class="line">    <span class="type">int</span> age;</span><br><span class="line">    <span class="type">int</span> score;</span><br><span class="line">    <span class="meta">@override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">compareTo</span><span class="params">(Student other)</span>&#123;</span><br><span class="line">        <span class="keyword">if</span>(age != other.age)&#123;</span><br><span class="line">            <span class="keyword">return</span> age - other.age;</span><br><span class="line">        &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">            <span class="keyword">return</span> score - other.score;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 排序</span></span><br><span class="line">List&lt;Student&gt; students = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">students.add(<span class="keyword">new</span> <span class="title class_">Student</span>(<span class="number">18</span>,<span class="number">100</span>));</span><br><span class="line">students.add(<span class="keyword">new</span> <span class="title class_">Student</span>(<span class="number">24</span>,<span class="number">59</span>));</span><br><span class="line">Collections.sort(students);</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//可以重载比较符号，但定义比较函数更方便</span></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Student</span>&#123;</span><br><span class="line">    <span class="keyword">public</span>:</span><br><span class="line">    <span class="type">int</span> age;</span><br><span class="line">    <span class="type">int</span> score;</span><br><span class="line">    <span class="built_in">Student</span>(<span class="type">int</span> age, <span class="type">int</span> score)&#123;</span><br><span class="line">        <span class="keyword">this</span>-&gt;age = age;</span><br><span class="line">        <span class="keyword">this</span>-&gt;score = score;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="type">bool</span> <span class="title">cmp</span><span class="params">(<span class="type">const</span> student&amp; s1, <span class="type">const</span> student&amp; s2)</span></span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(s<span class="number">1.</span>age != s<span class="number">2.</span>age)&#123;</span><br><span class="line">            <span class="keyword">return</span> s<span class="number">1.</span>age &gt; s<span class="number">2.</span>age;</span><br><span class="line">        &#125;<span class="keyword">else</span>&#123;</span><br><span class="line">            <span class="keyword">return</span> s<span class="number">1.</span>score &gt; s<span class="number">2.</span>score;</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br><span class="line">vector&lt;Student&gt; students;</span><br><span class="line"><span class="function">Student <span class="title">s1</span><span class="params">(<span class="number">18</span>,<span class="number">100</span>)</span></span>;</span><br><span class="line"><span class="function">Student <span class="title">s2</span><span class="params">(<span class="number">24</span>,<span class="number">59</span>)</span></span>;</span><br><span class="line">students.<span class="built_in">push_back</span>(s1);</span><br><span class="line">students.<span class="built_in">push_back</span>(s2);</span><br><span class="line"><span class="built_in">sort</span>(students.<span class="built_in">begin</span>(),students.<span class="built_in">end</span>(),cmp);</span><br></pre></td></tr></table></figure>
+
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://blog.yuantao.eu.org/java2cpp/" data-id="cm17tha22000kfsq4b73h9rbl" data-title="java2cpp" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      
+      
+      
     </footer>
   </div>
   
@@ -170,7 +244,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.yuantao.eu.org/raifunotatsujin/" data-id="cm15tqeuk000agaq29lekcmp4" data-title="Raifu no Tatsujin" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      <a data-url="http://blog.yuantao.eu.org/raifunotatsujin/" data-id="cm17tha20000efsq4548i5ggn" data-title="Raifu no Tatsujin" class="article-share-link"><span class="fa fa-share">分享</span></a>
       
       
       
@@ -182,7 +256,7 @@
 
 
   
-    <article id="post- Dandelion’s Promise" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+    <article id="post-Dandelion’s Promise" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
     <a href="/dandelionspromise/" class="article-date">
   <time class="dt-published" datetime="2023-06-16T08:00:00.000Z" itemprop="datePublished">2023-06-16</time>
@@ -200,7 +274,7 @@
         
   
     <h1 itemprop="name">
-      <a class="p-name article-title" href="/dandelionspromise/"> Dandelion’s Promise</a>
+      <a class="p-name article-title" href="/dandelionspromise/">Dandelion’s Promise</a>
     </h1>
   
 
@@ -213,7 +287,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.yuantao.eu.org/dandelionspromise/" data-id="cm15tqeud0001gaq28a2lhdap" data-title=" Dandelion’s Promise" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      <a data-url="http://blog.yuantao.eu.org/dandelionspromise/" data-id="cm17tha1t0003fsq4522d5stg" data-title="Dandelion’s Promise" class="article-share-link"><span class="fa fa-share">分享</span></a>
       
       
       
@@ -273,12 +347,83 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.yuantao.eu.org/acknowledgements/" data-id="cm15tqeuf0003gaq29j2r1n36" data-title="Acknowledgements" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      <a data-url="http://blog.yuantao.eu.org/acknowledgements/" data-id="cm17tha1s0001fsq48i9s7n5a" data-title="Acknowledgements" class="article-share-link"><span class="fa fa-share">分享</span></a>
       
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/good/" rel="tag">good</a></li></ul>
 
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-Lost Winner" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/lostwinner/" class="article-date">
+  <time class="dt-published" datetime="2022-09-30T08:00:00.000Z" itemprop="datePublished">2022-09-30</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/homework/">homework</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/lostwinner/">Lost Winner</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <ul>
+<li>该文章已获得官方认证：全系都给90分的课程，我得到了89分。</li>
+</ul>
+<p>三年前，我写下了大学生活中的第一篇文章——大概是以“我在大学的愿景”为中心的专业概论课程论文。时过境迁，三年的时光就这么过去，我已经从当初的新生成为了大四的学生。在落笔前，我把尘封已久的那篇文章再次阅读。果然，那之中预期的许多美好愿望，都遥不可及，未能实现，但我并非一无所获——我收获了太多成长，当然也伴随着太多的代价。</p>
+<p>向那天蓦然回首，8月31日，来到这全新的环境，带着好奇与憧憬。那时的世界很自由，无拘无束，有着纯粹的快乐；只有上海气温的燥热偶尔会令人烦心。虽然我因调剂专业而来到生物工程学院，并没有什么兴趣与向往，但我仍然认真上课，不去虚度光阴，并且兼顾着自己的爱好，期待着每一天的新鲜事。来自五湖四海的同学们性格迥异——世界只是一个轮廓，而各种各样的人为它着上不同的颜色。</p>
+<p>然而在度过充实的第一学期，回家以后，新冠疫情就出现在了这片土地上。疫情的袭来，并不只是带来健康上的危机，更给人们带来精神上的消磨。线上学习的千篇一律、封闭管理的骇人听闻……我的家乡甚至成为全中国第二个出现疫情的地点，核酸检测的感觉是一分的新奇加上九分的担忧。社团、班级尽管仍在积极组织活动，但远远不及在校的感觉。我并不是一个坚强的人，并不能够在冲击之下仍然恪守本心。就这样糊涂地度过这个学期后，我理所应当地与转专业失之交臂，这件事成为我一生的遗憾。在假期，形势变得放松，出门的需求被允许，可是，街上的人们都开始戴起口罩。世界这个轮廓变得虚无，缤纷的颜色变得黯淡。</p>
+<p>终于，假期过去了。我成为了大二的学生，回归阔别已久的校园。我把新的学期作为重启，以迎新活动为起点，这是全新的生活——不仅是迎接学弟学妹，更是迎接新的自我。但我总是在不经意间，把和别人的关系闹得很僵，之后就在时光的流逝中与其变得形同陌路。这样的人逐渐从屈指可数，变得不胜枚举。</p>
+<p>但就在那年的十一月份，我的大学生活才出现浓墨重彩。遗传学实验让我结识了陪伴我整整一年半的同桌，直到第六学期，我都期待着每周实验课的快乐时光；我还有一群工作和我并不相同的朋友——实验课的小助教们，或许是因误会而识，但他们待我真诚，我们各取所长，顺利通过小组作业；我还以自己所擅长的计算机技术帮助了许多人，和其中的许多都成为了朋友。尽管在这一年中，也在某些事情上很不甘心，但我学会了断舍离，不再执拗于过往，弃我去者，昨日之日不可留。这幅图画上的线稿不停地变化，变换各种形态，但是并不缺乏斑斓的颜色。</p>
+<p>时间不待人，大学时光匆匆已经过半。在大三，更多的是饶恕了总是冒失的自己，努力让自己的大学有一个可接受的结果。上学期是平淡无奇的，日子照常地度过；而下个学期，疫情的阴霾再次来临。最初只是取消了一个月的线下课程，间断地进行核酸检测；然后在三月底，教室和实验室都被关闭、食堂也不再允许堂食，只提供千篇一律的盒饭；逐渐地，出门的时间和人员都遭到限制，超市不再营业，人们在抢夺物资的时候，怨恨着天灾。然而天灾无情人有情，本来不怎么联系的同学们顿时多了交流；因管控而难以相伴的情侣们，在围栏的两侧互相鼓励，这感情冲破了囹圄的禁锢；曾经因利益而勾心斗角的人们，也选择释怀，联合起来共克时艰。我感受到了世界这幅图画突然变得闪耀——什么色彩、轮廓，都不重要，重要的是，人们团结一心，造就了这个世界。</p>
+<p>如今，我已经离开了生活了三年的海思路，点点滴滴化作说不清的回忆。每当翻开日记，酸甜苦辣都会重现。周围的人纷纷展示研招网上的推免截图，包括我熟悉的人、不熟悉的人，甚至有与其闹僵的人。这无疑令我难过、嫉妒，但我由衷地祝贺他们——他们以自己的努力使梦想变为现实，然而我仍在幻想中慨叹。每个人都有自己的一片天地，有着自己对是非的评判，尽管在众人眼中，我只是一个渺小的人，无所谓成就，但在我的内心，并不畏惧。</p>
+<p>包括我在内，大多数人并没有什么高远的追求——无非为了充足的财富，能在消费的时候不那么犹豫；为了能去任何想去的地方，看看本不属于自己的山水，满足自己的向往或是遗憾；为了有能力不再犹豫，不让心爱的人消失在人海；为了快乐的长度、广度和深度；<strong>为了自由</strong>。</p>
+<p><strong>人之性恶，其善者伪也。</strong>荀子认为，人们生来就是“惰”的，所有的行为都是后天影响的结果。的确，在进化的角度来说，生命是不需做无用功的，只要维持好基本的生命活动。然而，人类的世界与进化论背道而驰，在日益增长的压力面前，人必须逼着自己做那些抗拒的事情。人的追求是自由，但追求的过程却是拘束。</p>
+<p>走进大学，我们本来的愿望是探寻科学。然而本应受人热忱和敬畏的它，却成为了多数人成就自我的工具。学习的目的再也没有那么纯粹。背诵书籍的原因从探寻真理变成了为了写满试卷、赢得老师的好感和分数；课程论文不再言简意骇，这样的行为被人理解成懒惰与态度不端，学生们习惯了按课程要求标准的几倍甚至十倍字数完成，就这么将前人浓缩的智慧稀释。这已经从无意义上升到了病态。</p>
+<p>把目光放到这个学校，提起我最遗憾的事情。在中国，至今没有任何完善的制度能够将学生的兴趣与能力结合以选拔人才。学科竞赛是无力的——它有着太多的局限性：学科领域、地区发展的限制、以及竞赛的高考化，受利者只在塔尖。运气好的学生，能够在优秀的高校学习心仪的专业，而像我这般倒霉的，就沦落至<strong>专业调剂</strong>的悲惨命运中。转专业仍然和高考一样，是一个依赖学习成绩的过程，虽然它并不是对学生的兴趣不管不顾——只有成绩达到标准，才会在意人的兴趣。本来是一位志向高远、天赋异凛的人才，受尽这样那样的折磨后，逐渐失去理想，甚至成为废人，多么可悲！<strong>是马也，虽有千里之能，食不饱，力不足，才美不外见，且欲与常马等不可得，安求其能千里也?</strong></p>
+<p>纵观国内科学发展，作为差生，我并没有评价的权利，但换作任何人都会觉得，科学世界本应更加祥和。科学家运用智慧，奉献自己，改变世界，造福人类，这本是多么美好的事情？但事实上，科学已被资本约束。科学研究无疑存在巨大的成本，是它最大的限制，然而收益却是缓慢的，一项技术从呱呱坠地，到实验成功，再到实际应用，一直伴随着巨大的消耗。并且，并不是每个技术都能降低到一个亲民的成本。因此，我有时对科学感到悲哀——科学家仿佛成了资本的棋子，有多少迫于生计的人，愤懑地离去？科学本应该没有任何阻碍，正如亚历山德拉·埃尔巴克彦所说：_<strong>To remove all the barriers in the way of science.</strong>_</p>
+<p>好像人的一生只有两条道路：内卷成功，然后成为资本的棋子；或者是失去梦想，成为流浪的人。将头脑从沉重的思考中唤醒，我本来只是想想想，我的大学时光是否对得起自己，然而事到如今，思考已经没有什么意义。以“毕业实习联想”为题的文章，与毕业实习却毫不相干——这次实习，是大学的最后一门正式课程，代表着句号前这一句话前的一个逗点，我们在此驻足，等待着最终乐章的到来。无论悲伤与喜悦，泥泞与平坦，真诚与虚伪，都会在句号闭合的那一刻一释前嫌，烟消云散。</p>
+<p>好想让时间停留在最初的起点，在风平浪静的世界，与任何人都没有闹僵；让时间停留在去年的夏天，那时发生的事令我五味杂陈，然而那是忙碌而充实的日子；让时间停留在现在也好——尽管我面临终焉，仍有同学、老师和美丽的校园。</p>
+<p>世界尽管残酷，但它仍然美丽。在这文章的尾声，思绪万千，飞出了脑海。在四教附近的大草地上，鸟儿飞了，飞向毛主席指着的远方；它们在那远方，纵情地歌唱……那是难以望及的远方。</p>
+<p>我也想飞翔，穿过三层大气，向着那无边无垠的浩瀚宇宙。</p>
+<p>然而，沉重的枷锁令我难以抬头看清前方……</p>
+<p>归根结底，我仍然是很失败，与梦想失之交臂，且不能保护我所爱。</p>
+<p>我，并没有他们那样的光明前途。</p>
+<p>但自始至终，我都尊重着我自己的选择、原则和灵魂。</p>
+<p>我还有我最初的梦想、积蓄的力量和不离不弃的朋友。</p>
+<p>我的身影不能在这路上渐渐消失，尚有未尽之事。</p>
+<p><strong>愿中国青年都摆脱冷气，只是向上走。不必听自暴自弃者的话，能做事的做事，能发声的发声；有一分热，发一分光，就令萤火一般，也可以在黑暗里发一点光，不必等候炬火。</strong></p>
+<p>无论外界的形势如何，我始终做到了：做好自己。</p>
+<p><strong>不吾知其亦已兮，苟余情其信芳！</strong></p>
+<p>即使我曾经失败，但我一直自由！</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://blog.yuantao.eu.org/lostwinner/" data-id="cm17tha1x0009fsq4f4eggiog" data-title="Lost Winner" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      
+      
+      
     </footer>
   </div>
   
@@ -326,7 +471,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.yuantao.eu.org/mookcakewithflowershape/" data-id="cm15tqeuk0009gaq25px0ba2j" data-title="Mooncake with Flower Shape" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      <a data-url="http://blog.yuantao.eu.org/mookcakewithflowershape/" data-id="cm17tha1y000afsq49my089li" data-title="Mooncake with Flower Shape" class="article-share-link"><span class="fa fa-share">分享</span></a>
       
       
       
@@ -382,12 +527,12 @@
 <p>这几天，她在旅行。住在也许略有残破但充满欢声笑语的民宿里；走遍市井小巷，品尝酸甜可口的味道，把苦辣抛在脑后；与朋友手挽手、肩并肩，一起去海边。或许当初少些迷惘，或许是在以后的以后，我也会在她的队伍中白天吃喝玩乐，晚上数着星星。</p>
 <p>扫视草稿纸，手上的笔还在延胡索酸那里打着圈儿。空调的温度被人调低，我从回忆中渐渐地冷静下来。纵使世间万物都如同这基本的三羧酸循环一样周而复始，但我仍然相信，总有一天这循环也会有始有终。</p>
 <p>而我也会在那一天，和那些消失的人见面。</p>
-<p><img src="https://prod-files-secure.s3.us-west-2.amazonaws.com/237dae67-8231-4079-83b5-a767767eccb3/9f79054e-7fdc-4fa7-9d5b-f5119be62668/image.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAT73L2G45HZZMZUHI/20240917/us-west-2/s3/aws4_request&X-Amz-Date=20240917T023742Z&X-Amz-Expires=3600&X-Amz-Signature=8aebd69877a6984c072754170da9fc7d4697ae9c8e43a6f4eddddbd7d393d465&X-Amz-SignedHeaders=host&x-id=GetObject" alt="image.jpeg"></p>
+<p><img src="https://prod-files-secure.s3.us-west-2.amazonaws.com/237dae67-8231-4079-83b5-a767767eccb3/9f79054e-7fdc-4fa7-9d5b-f5119be62668/image.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAT73L2G45HZZMZUHI/20240918/us-west-2/s3/aws4_request&X-Amz-Date=20240918T120609Z&X-Amz-Expires=3600&X-Amz-Signature=1013094a7b340998d591d53876f39528a99074f35c03bd72c2741e6230a19cec&X-Amz-SignedHeaders=host&x-id=GetObject" alt="image.jpeg"></p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://blog.yuantao.eu.org/fumarate/" data-id="cm15tqeuj0007gaq2958m20nu" data-title="Fumarate" class="article-share-link"><span class="fa fa-share">分享</span></a>
+      <a data-url="http://blog.yuantao.eu.org/fumarate/" data-id="cm17tha1w0007fsq4b0zcf3pc" data-title="Fumarate" class="article-share-link"><span class="fa fa-share">分享</span></a>
       
       
       
@@ -411,7 +556,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">分类</h3>
     <div class="widget">
-      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/alive/">alive</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/homework/">homework</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/wall/">wall</a></li></ul>
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/alive/">alive</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/homework/">homework</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/tech/">tech</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/wall/">wall</a></li></ul>
     </div>
   </div>
 
@@ -440,7 +585,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">归档</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">八月 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">二月 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/06/">六月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">五月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/09/">九月 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/07/">七月 2021</a></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/08/">八月 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/07/">七月 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2024/02/">二月 2024</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/06/">六月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2023/05/">五月 2023</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/09/">九月 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/07/">七月 2021</a></li></ul>
     </div>
   </div>
 
@@ -457,19 +602,19 @@
           </li>
         
           <li>
+            <a href="/java2cpp/">java2cpp</a>
+          </li>
+        
+          <li>
             <a href="/raifunotatsujin/">Raifu no Tatsujin</a>
           </li>
         
           <li>
-            <a href="/dandelionspromise/"> Dandelion’s Promise</a>
+            <a href="/dandelionspromise/">Dandelion’s Promise</a>
           </li>
         
           <li>
             <a href="/acknowledgements/">Acknowledgements</a>
-          </li>
-        
-          <li>
-            <a href="/mookcakewithflowershape/">Mooncake with Flower Shape</a>
           </li>
         
       </ul>
