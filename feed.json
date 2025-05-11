@@ -1,0 +1,27 @@
+{
+    "version": "https://jsonfeed.org/version/1",
+    "title": "Yuan Tao‘s Record",
+    "description": "",
+    "home_page_url": "https://blog.yuantao.eu.org",
+    "feed_url": "https://blog.yuantao.eu.org/feed.json",
+    "user_comment": "",
+    "author": {
+        "name": "Yuan Tao"
+    },
+    "items": [
+        {
+            "id": "https://blog.yuantao.eu.org/test.html",
+            "url": "https://blog.yuantao.eu.org/test.html",
+            "title": "test",
+            "summary": "test",
+            "content_html": "<p>test</p>",
+            "author": {
+                "name": "Yuan Tao"
+            },
+            "tags": [
+            ],
+            "date_published": "2025-05-11T21:34:20+08:00",
+            "date_modified": "2025-05-11T21:34:20+08:00"
+        }
+    ]
+}

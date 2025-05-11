@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+    <title>Yuan Tao‘s Record</title>
+    <link href="https://blog.yuantao.eu.org/feed.xml" rel="self" />
+    <link href="https://blog.yuantao.eu.org" />
+    <updated>2025-05-11T21:34:20+08:00</updated>
+    <author>
+        <name>Yuan Tao</name>
+    </author>
+    <id>https://blog.yuantao.eu.org</id>
+
+    <entry>
+        <title>test</title>
+        <author>
+            <name>Yuan Tao</name>
+        </author>
+        <link href="https://blog.yuantao.eu.org/test.html"/>
+        <id>https://blog.yuantao.eu.org/test.html</id>
+
+        <updated>2025-05-11T21:34:20+08:00</updated>
+            <summary>
+                <![CDATA[
+                    test
+                ]]>
+            </summary>
+        <content type="html">
+            <![CDATA[
+                <p>test</p>
+            ]]>
+        </content>
+    </entry>
+</feed>
