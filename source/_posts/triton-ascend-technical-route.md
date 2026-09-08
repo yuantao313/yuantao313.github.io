@@ -26,6 +26,31 @@ Python kernel → TTIR → structure/unstructure → Linalg/HIVM/HFusion
 
 [ASTSource.make_ir()](https://github.com/triton-lang/triton-ascend/blob/b64287188046fe7bb0cfd424ee3e389f96a7affa/python/triton/compiler/compiler.py#L78) 生成 TTIR，[compile()](https://github.com/triton-lang/triton-ascend/blob/b64287188046fe7bb0cfd424ee3e389f96a7affa/python/triton/compiler/compiler.py#L226) 发现后端，[AscendBackend.add_stages()](https://github.com/triton-lang/triton-ascend/blob/b64287188046fe7bb0cfd424ee3e389f96a7affa/third_party/ascend/backend/compiler.py#L1388) 装配普通 `ttir → ttadapter → mlirbc → bcmlir → npubin` 路径；A5 pure-SIMT 则直接 `ttir → npubin`。项目实际覆盖语言扩展、NPU lowering/优化以及设备加载与发射，而非只替换 launcher。
 
+## 工程结构
+
+Triton-Ascend 保持 Triton 的前端入口和通用编译设施，在后端建立面向 Ascend 的分层实现：Python kernel 先进入 TTIR，再经过 Ascend 专属 lowering、结构化优化和硬件代码生成，最终由 `npubin`、`torch_npu` 与 CANN 完成加载和发射。
+
+| Layer | Implementation | Role |
+|:---|:---|:---|
+| Frontend | [`python/triton/compiler/compiler.py`](https://github.com/triton-lang/triton-ascend/blob/b64287188046fe7bb0cfd424ee3e389f96a7affa/python/triton/compiler/compiler.py) | AST 到 TTIR 及编译阶段装配 |
+| Backend | [`third_party/ascend/backend/compiler.py`](https://github.com/triton-lang/triton-ascend/blob/b64287188046fe7bb0cfd424ee3e389f96a7affa/third_party/ascend/backend/compiler.py) | Ascend 编译阶段和后端选项 |
+| Dialect/IR | [`third_party/ascend/include/Dialect/TritonAscend/IR/`](https://github.com/triton-lang/triton-ascend/tree/b64287188046fe7bb0cfd424ee3e389f96a7affa/third_party/ascend/include/Dialect/TritonAscend/IR) | Ascend op、layout 和硬件抽象 |
+| Lowering | [`third_party/ascend/lib/Conversion/`](https://github.com/triton-lang/triton-ascend/tree/b64287188046fe7bb0cfd424ee3e389f96a7affa/third_party/ascend/lib/Conversion) | TTIR/Linalg/结构化 IR 到 Ascend 表示 |
+| Pipeline | [`third_party/ascend/lib/DynamicCVPipeline/`](https://github.com/triton-lang/triton-ascend/tree/b64287188046fe7bb0cfd424ee3e389f96a7affa/third_party/ascend/lib/DynamicCVPipeline) | Cube/Vector、UB、流水和多缓冲优化 |
+| Launch | [`third_party/ascend/backend/driver.py`](https://github.com/triton-lang/triton-ascend/blob/b64287188046fe7bb0cfd424ee3e389f96a7affa/third_party/ascend/backend/driver.py) | 设备、ABI、launcher 和执行边界 |
+
+```mermaid
+flowchart LR
+    A[Python Triton kernel] --> B[TTIR]
+    B --> C[Ascend backend stages]
+    C --> D[Ascend dialect and structured IR]
+    D --> E[Cube / Vector / UB pipeline]
+    E --> F[MLIR bytecode and BiShengIR]
+    F --> G[npubin]
+    G --> H[torch_npu and CANN launch]
+```
+
+
 ## 项目核心竞争点
 
 1. **TTIR 后精准分叉。** [AscendBackend.supports_target()](https://github.com/triton-lang/triton-ascend/blob/b64287188046fe7bb0cfd424ee3e389f96a7affa/third_party/ascend/backend/compiler.py#L1306) 只接管 NPU target，最大化复用 Triton 开发体验，同时避免硬套 NVIDIA warp/CTA 布局。

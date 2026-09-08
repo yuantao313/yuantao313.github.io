@@ -35,6 +35,30 @@ PyPTO 是面向昇腾 AI 处理器的高性能编程框架。它要解决的不�
 
 PyPTO Pro 则由 [`KernelDef::parse_target_program`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/kernel.py) 和 [`ASTParser::parse_function`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/language/parser/_ast_parser.py) 建图，经 [`CCECodegen::GenerateSingle`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/pypto_pro/codegen/cce/cce_codegen.cpp) 执行 [`ConvertToSSA`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/ir/transforms/convert_to_ssa_pass.cpp) 并直接生成 CCE/PTO C++。[`JitCompileConfig`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/compile_config.py) 集中描述 A2/A3、A5 的核型、内存模型、Bisheng 参数和运行库依赖，JIT 最终由 [`_run_bisheng`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/jit.py) 产出可加载的共享库。
 
+## 工程结构
+
+PyPTO 的工程边界按“Python 编程入口 → 多级 IR 与图抽象 → Pass/调度 → CCE/PTO CodeGen → Bisheng/CANN 工具链 → 设备执行”组织。关键层不是简单的 Python 绑定，而是由 Tensor/Tile/Block 图逐步形成硬件感知的执行图。
+
+| Layer | Implementation | Role |
+|:---|:---|:---|
+| Frontend | [`python/pypto/pil/compile_pipeline.py`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/pil/compile_pipeline.py) | Python 程序进入编译管线 |
+| IR | [`framework/src/interface/tensor/`](https://gitcode.com/cann/pypto/tree/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/tensor) | LogicalTensor、SymbolicScalar、token 和 slot 抽象 |
+| Pass | [`framework/src/passes/pass_mgr/pass_manager.cpp`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/passes/pass_mgr/pass_manager.cpp) | 图级 Pass、依赖处理和调度管线 |
+| CodeGen | [`framework/src/codegen/npu/codegen_npu.cpp`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/codegen/npu/codegen_npu.cpp) | 生成 NPU 侧 CCE/PTO 代码 |
+| Toolchain | [`framework/src/machine/compile/aicore_compiler.cpp`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/machine/compile/aicore_compiler.cpp) | AI Core 编译和外部工具链衔接 |
+| Execution | [`framework/src/machine/runtime/launcher/device_launcher.cpp`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/machine/runtime/launcher/device_launcher.cpp) | 设备侧加载、参数和启动边界 |
+
+```mermaid
+flowchart LR
+    A[Python/PIL frontend] --> B[Tensor and symbolic IR]
+    B --> C[Tensor / Tile / Block graph]
+    C --> D[Pass manager and scheduling]
+    D --> E[CCE/PTO NPU CodeGen]
+    E --> F[Bisheng and CANN toolchain]
+    F --> G[Device launcher]
+```
+
+
 ## 项目核心竞争点
 
 ### 1. 动态 Tensor 语义贯通到设备侧 MPMD
