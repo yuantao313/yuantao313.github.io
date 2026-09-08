@@ -1,357 +1,174 @@
 ---
-title: PyPTO 编译器技术路线与差异化竞争力
-date: 2026-09-07 09:00:00
+title: PyPTO 技术路线与差异化竞争力
+date: 2026-09-08 09:00:00
 categories:
   - agentdocs
 tags:
-  - compiler-stack
-  - ai-systems
+  - compiler-architecture
+  - tensor-programming
+  - ascend-ai
 ---
 
-# PyPTO 编译器技术路线与差异化竞争力调研
+| Field | Value |
+|:---|:---|
+| Source | [cann/pypto](https://gitcode.com/cann/pypto/tree/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5) |
+| Version | [PyPTO 0.2.1](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/pyproject.toml) / [CANN package 9.2.0](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/version.cmake) / [`v9.2.0-beta.2-322-g5d6afbe0d`](https://gitcode.com/cann/pypto/commit/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5) |
+| Commit | [5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5](https://gitcode.com/cann/pypto/commit/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5) |
+| Date | 2026-09-07 20:00:38 +08:00 |
 
-> 调研对象：https://gitcode.com/cann/pypto.git，本地 master
->
-> 固定基线：commit 5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5
->
-> 基线时间：2026-09-07 20:00:38 +08:00
->
-> git describe：v9.2.0-beta.2-322-g5d6afbe0d
->
-> 调研方法：以当前仓库源码、配置和本地 Git 历史为证据，沿 Python 前端→IR→Pass/Lowering→CCE/PTO CodeGen→Bisheng→CANN/Ascend 的编译主链分析。Runtime 仅保留解释编译产物执行模型所必需的内容。
+# PyPTO 技术路线与差异化竞争力
 
-## 证据口径
+## 项目方向概览
 
-- **[已验证]**：能够由本报告引用的当前源码、配置、测试或 commit 直接复核。
-- **[推断]**：由多个已验证事实形成的技术判断，不代表项目官方定位或承诺。
-- **[未验证]**：当前仓库没有足够证据，或依赖仓库外组件内部实现，不能下确定结论。
+PyPTO 是面向昇腾 AI 处理器的高性能编程框架。它要解决的不是单个算子的 Python 包装，而是把 Tensor 级程序逐层编译成硬件感知的 Tile 程序：在 Tensor 语义仍然完整时决定切分、数据布局、存储层级、搬运、融合、乱序调度和同步，生成 CCE/PTO 源码，再交给 Bisheng 和 CANN 完成目标编译与执行。
 
----
+项目形成了两条互补路线：
 
-## 问题一：PyPTO 最核心的竞争力是什么？
+| 路线 | 面向用户 | 输入与决策方式 | 编译和执行路径 |
+|:---|:---|:---|:---|
+| 主 PyPTO | 算法开发者、整图/融合算子开发者 | Tensor 与 Python 结构化控制流；Tile、内存和调度主要由编译器决定 | Python → PIL → `pypto::ir` → `tile_fwk` 多级图 → CCE/PTO → AICPU 控制流 + AI Core 叶子程序，形成 MPMD 调度 |
+| PyPTO Pro | 性能专家、硬件能力开发者 | 显式 Tile、Reg、SIMT 以及 Cube/Vector section；用户直接控制更多硬件细节 | Python DSL → `pypto::ir` → SSA → CCE/PTO C++ → JIT 共享库，以 SPMD kernel 方式启动 |
 
-**答案：把高层 Tensor 程序自动编译为适配 Ascend 多核、多流水、多级存储的 Tile 级程序，并把动态控制流与 AI Core 叶子计算协同编译；同时提供 PyPTO Pro 作为显式 Tile/Reg/SIMT 的性能专家路径。**
+主路线的默认入口由 [`jit(new_ir=True)`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/frontend/parser/entry.py) 进入 [`compile_new_ir`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/pil/compile_pipeline.py)。Python 源码先经 [`ast2pil`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/pil/parser.py) 建立 PIL 控制流，再由 [`dispatch_block`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/pil/dispatcher.py) 执行语义发射。随后 [`_build_default_pipeline`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/pil/compile_pipeline.py) 依次完成 token 推导、规范化与消除无效语句、分支合并、符号标量简化、冗余 token 消除、root function 构建和动态图终结。
 
-- **[已验证]** 主 pypto 路线不是简单的 Python 算子封装。它从 Python 控制流构建结构化 IR，再依次处理依赖 token、动态图、Tensor 切分、内存类型、子图划分、乱序调度、同步插入、内存复用和 CCE/PTO 代码生成。证据集中在 [compile_pipeline.py](python/pypto/pil/compile_pipeline.py)、[pass_manager.cpp](framework/src/passes/pass_mgr/pass_manager.cpp) 和 [codegen_npu.cpp](framework/src/codegen/npu/codegen_npu.cpp)。
-- **[已验证]** 主路线最终形成 AICPU 控制流与多个 AI Core 叶子程序。Host 编译编排见 [CompileDyndevFunction](framework/src/machine/host/backend.cpp)，设备 ABI 和 AI Core 子函数调用见 [aicore_entry.h](framework/src/interface/machine/device/tilefwk/aicore_entry.h)。
-- **[已验证]** PyPTO Pro 提供另一种路径：用户显式表达 Tile、寄存器、SIMT、Cube/Vector section，编译器从自研 IR 直接生成 CCE/PTO C++，再由 Bisheng JIT 编译。入口见 [KernelDef](python/pypto_pro/runtime/kernel.py)、[CCECodegen::GenerateSingle](framework/src/interface/pypto_pro/codegen/cce/cce_codegen.cpp) 和 [_run_bisheng](python/pypto_pro/runtime/jit.py)。
-- **[推断]** 相比只做算子捕获或只生成单个 kernel 的 DSL，PyPTO 的差异化不在 Python 语法本身，而在“高层动态图语义→自动 Tile 化与硬件资源决策→设备侧 MPMD 调度”的纵向闭环。
-- **[推断]** 两条路线覆盖了两个互补目标：主 pypto 追求生产力和自动优化，pypto_pro 追求性能可控性。它们共享基础 IR 和 CANN 底座，但还不是一个完全统一的后端。
+新 IR 并未直接替代成熟后端。[`CreateRootFunctions`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/tensor/ir.cpp) 调用 [`RootFunctionBuilder::Build`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/tensor/ir_func_builder.cpp)，把结构化 IR 分段为 dynamic root、path function 和 hidden leaf function，并建立 call、incast/outcast 与运行时 slot；[`FinalizeDynamicFunction`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/tensor/ir_finalize.cpp) 再把叶子函数提交给既有编译链。因此当前主线的实际架构是“新前端与新通用 IR + 成熟的 `tile_fwk` lowering 后端”。
 
-核心路线可压缩为：
+PyPTO Pro 则由 [`KernelDef::parse_target_program`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/kernel.py) 和 [`ASTParser::parse_function`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/language/parser/_ast_parser.py) 建图，经 [`CCECodegen::GenerateSingle`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/pypto_pro/codegen/cce/cce_codegen.cpp) 执行 [`ConvertToSSA`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/ir/transforms/convert_to_ssa_pass.cpp) 并直接生成 CCE/PTO C++。[`JitCompileConfig`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/compile_config.py) 集中描述 A2/A3、A5 的核型、内存模型、Bisheng 参数和运行库依赖，JIT 最终由 [`_run_bisheng`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/jit.py) 产出可加载的共享库。
 
-    高层 Tensor 路线：
-    Python → PIL → pypto::ir → Tensor IR Pass
-           → tile_fwk 多级图 → PVC2_OOO
-           → CCE/PTO CodeGen → Bisheng
-           → AICPU 控制流 + AI Core 叶子程序 → CANN Runtime
+## 项目核心竞争点
 
-    显式 Pro 路线：
-    Python Tile/Reg/SIMT → pypto::ir → ConvertToSSA
-                         → CCECodegen → CCE/PTO C++
-                         → Bisheng JIT .so → CANN Runtime
+### 1. 动态 Tensor 语义贯通到设备侧 MPMD
 
----
+PIL 不把 Python 简化成线性算子列表。[`visit_if`、`visit_for` 和 `visit_while`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/pil/parser.py) 把控制流编码为独立 block，[`if_else_impl` 与 `loop_impl`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/pil/ops.py) 将变量更新转换为 return variables、iteration arguments 和 yield。符号条件、动态 valid shape、跨分支值和 Tensor 副作用由 [`SymbolicScalar`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/tensor/symbolic_scalar.h)、[`LogicalTensor`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/tensor/logical_tensor.h)、读写 token 与 [`TensorSlotManager`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/tensor/tensor_slot.cpp) 联合承载。
 
-## 问题二：PyPTO 有哪两条特色编译路径，它们分别解决什么问题？
+这套表达最终不是被静态抹平：[`CompileDyndevFunction`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/machine/host/backend.cpp) 编译设备控制程序与 AI Core 叶子程序，[`aicore_entry.h`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/machine/device/tilefwk/aicore_entry.h) 定义设备 ABI。竞争力因此来自一条完整链路：动态控制决策在设备侧执行，而叶子计算仍然保持硬件专用 Tile 程序。
 
-### 答案 A：主 pypto 是高层 Tensor 自动 lowering 路线
+### 2. 领域决策前移的多级图编译
 
-- **[已验证]** [entry.py::jit](python/pypto/frontend/parser/entry.py) 默认 new_ir=True，通过 JitCallableWrapper 进入 [compile_new_ir](python/pypto/pil/compile_pipeline.py)。
-- **[已验证]** [ast2pil](python/pypto/pil/parser.py) 将 Python AST 转为 PIL 的 Function、Block、Call、Value、Jump；[dispatch_block](python/pypto/pil/dispatcher.py) 解释执行 PIL，[ops.py](python/pypto/pil/ops.py) 中的语义实现将控制流和 Tensor 操作发射为 C++ 侧 pypto::ir 节点。
-- **[已验证]** 新 IR 完成前置规范化后，[CreateRootFunctions](framework/src/interface/tensor/ir.cpp) 调用 [RootFunctionBuilder](framework/src/interface/tensor/ir_func_builder.cpp)，把 IR 分段为 dynamic root、path function 和 hidden leaf function，并建立 call、incast/outcast 与 slot 关系。
-- **[已验证]** 后续通过 PVC2_OOO 进入 Tensor Graph、Tile Graph、Block/Execute Graph 的成熟 Pass 管线，最后生成 CCE/PTO 代码和设备程序。
-- **[推断]** 这条路线的产品价值是让用户保留 Tensor 级表达，编译器承担 Tile 切分、异构核映射、存储层级、同步和调度等硬件化工作。
+[`BuildPvc2OooPassEntries`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/passes/pass_mgr/pass_manager.cpp) 固定编排 46 个 pass，覆盖四组关键决策：
 
-### 答案 B：pypto_pro 是显式 Tile/Reg/SIMT 直达 CCE 路线
+- Tensor 语义规范化：format 推导、automatic cast、reshape/view 清理、内存冲突推导；
+- Tensor 到 Tile：raw tensor 切分、reshape 切分、图分区与子图函数化；
+- 数据与存储：memory type、N-buffer、L1 copy-in 复用、move 生成、本地 buffer padding、全局内存复用；
+- 执行映射：Cube/Vector 相关融合、OOO schedule、同步插入、TileOp 顺序调优、last-use 标记和 codegen 预处理。
 
-- **[已验证]** [KernelDef::parse_target_program](python/pypto_pro/runtime/kernel.py) 按 Cube、Vector target 调用 [ASTParser::parse_function](python/pypto_pro/language/parser/_ast_parser.py)，构造包含 TensorType、TileType、PtrType、SectionStmt 和 Call 的 pypto::ir Program。
-- **[已验证]** [CCECodegen::GenerateSingle](framework/src/interface/pypto_pro/codegen/cce/cce_codegen.cpp) 执行 ir::pass::ConvertToSSA()，处理 helper/SIMT function，随后直接生成 CCE/PTO C++。
-- **[已验证]** [compile_config.py](python/pypto_pro/runtime/compile_config.py) 的 CCE_BACKEND 是当前唯一 JIT backend；_DEFAULT_CCE_JIT_COMPILE_CONFIG 配置 -xcce、--cce-aicore-arch、PTO include、runtime/profapi 链接和 -mllvm 后端参数。
-- **[已验证]** [jit.py::_parse_and_codegen_targets](python/pypto_pro/runtime/jit.py) 分别生成 Cube/Vector 实现并组装 wrapper；_run_bisheng 编译为 call_kernel_<hash>.so。
-- **[推断]** Pro 绕开 PVC2_OOO 的大部分自动图 lowering，用用户显式安排换取更短、可预测的生成路径，适合手工极致优化和新硬件能力快速暴露。
+[`ExpandFunction`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/passes/tensor_graph_pass/expand_function.h) 是 Tensor Graph 向 Tile Graph 展开的关键转换点，[`SubgraphToFunction`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/passes/tile_graph_pass/subgraph_to_function.h) 把子图变为可生成函数。Tensor、Tile、Block/Execute、Leaf 等状态由 [`FunctionType` 与 `GraphType`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/function/function.h) 明确区分。这使布局、片上存储、异构计算单元和同步等信息在语义尚未丢失时就进入优化，而不是全部留给通用目标后端猜测。
 
-### 两条路线的关键差异
+### 3. 自动编译与专家编程共存
 
-| 维度 | 主 pypto | pypto_pro |
-|---|---|---|
-| 输入抽象 | **[已验证]** Tensor 和结构化 Python 控制流 | **[已验证]** 显式 Tile/Reg/SIMT、Cube/Vector section |
-| 核心优化 | **[已验证]** 新 IR Pass + PVC2_OOO 多级图 Pass | **[已验证]** AST/IR 规范化、ConvertToSSA、直接 CCE CodeGen |
-| 硬件决策者 | **[推断]** 主要由编译器自动决定 | **[推断]** 主要由用户显式决定 |
-| 执行模型 | **[已验证]** AICPU 调度不同 AI Core 叶子程序，MPMD | **[已验证]** 多 AI Core 执行同一 kernel，SPMD |
-| 当前汇合点 | **[已验证]** 共享 pypto::ir 基础设施、Python binding、CANN/PTO/Bisheng 底座 | **[已验证]** 后半段 Pass、CodeGen 和运行模型仍分叉 |
+主 PyPTO 把硬件决策交给编译器；PyPTO Pro 暴露 Tile、TileGroup、Reg、Ptr、Cube/Vector section 和 SIMT。两条路线共同覆盖“高层生产力”和“底层性能可控性”：前者适合把复杂 Tensor 子图自动降到设备程序，后者适合快速暴露新指令、新数据布局和精细流水控制。
 
----
+二者共享 [`pypto::ir`](https://gitcode.com/cann/pypto/tree/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/include/ir)、Python binding、PTO/Bisheng 与 CANN 底座，但没有强行共用同一种 lowering 和启动模型。这种“双轨共底座”比单一路线更能覆盖不同性能工程层级，也是项目当前最鲜明的产品形态。
 
-## 问题三：Python 前端的特色在哪里，它怎样保留动态程序语义？
+### 4. 面向 Ascend 的垂直闭环
 
-**答案：前端不是把 Python 直接翻译成算子列表，而是先构造 PIL，再通过 trace/解释执行将 Python 变量、分支和循环转换为结构化 IR 的 carried values、Yield 和 token。**
+[`CodeGenNPU::GenCode`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/codegen/npu/codegen_npu.cpp) 已把图决策具体化为 CCE/PTO TileOp 源码，[`CodeGenNPU::PrepareCmd`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/codegen/npu/codegen_npu.cpp) 构造 Bisheng 编译命令；顶层 [`CMakeLists.txt`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/CMakeLists.txt) 接入 ACL Runtime、HAL、HCOMM、dump、profiling 与 securec。PyPTO 因而控制从 Python 语义到设备任务的主要环节，新硬件能力可以沿 DSL、IR、pass、codegen 和 runtime 同步落地。
 
-- **[已验证]** PIL 数据模型定义在 [pir.py](python/pypto/pil/pir.py)：Function/Block/Call/Value/Jump 保存控制流骨架，Scope.varmap 把 PIL Value 映射到 Python 值、SymbolicScalar 或 Tensor。
-- **[已验证]** [parser.py](python/pypto/pil/parser.py) 的 visit_if、visit_for、visit_while 把分支和循环体编码为独立 Block；store_names 记录分支/循环中发生写入的变量，为后续 yield/carry 决策提供输入。
-- **[已验证]** [dispatcher.py::dispatch_call](python/pypto/pil/dispatcher.py) 解析参数、调用语义实现，并在每次用户调用后通过 BuildContext.emit_tensor_stmts() 刷出 C++ 侧累积的 TensorOpStmt。
-- **[已验证]** [ops.py](python/pypto/pil/ops.py) 的 if_else_impl 和 loop_impl 将变量更新转为 IfStmt/ForStmt 的 returnVars、iterArgs 和 Yield；Journal 用于隔离、回滚分支 trace 期间的属性写副作用。
-- **[已验证]** 具体 Python bool 或可判定条件可以静态选择分支，符号条件则保留为 IR 控制流；动态 valid shape 发生分支差异时，前端会构造相应的 phi 标量并加入 yield。
-- **[推断]** 这种“两步式前端”把 Python 语法处理与 Tensor IR 构造解耦，既保留动态控制流，又能在进入图优化前把 Python 副作用收敛到可验证的结构化表示，是主路线的重要编译设施。
+## 相比同类产品的实现差异
 
----
+下表比较的是编译实现形态，而非 API 外观：
 
-## 问题四：PyPTO IR 的关键抽象是什么？哪些是自研？
+| 对比对象 | 常见实现重心 | PyPTO 的实现差异 |
+|:---|:---|:---|
+| Triton 类 kernel DSL | 以单 kernel、blocked program 和 SPMD 实例映射为中心，程序员定义 kernel 范围 | 主 PyPTO 能从 Tensor 图继续分解出多个 AI Core leaf，并由 AICPU 承载动态控制形成 MPMD；PyPTO Pro 才更接近显式 SPMD kernel DSL，但额外显式区分 Cube/Vector、Tile/Reg/SIMT |
+| TVM 类张量编译栈 | 以可扩展的通用 Tensor IR、schedule 和多后端 lowering 为中心 | PyPTO 不以跨后端通用性为中心，而把 Ascend 的多级存储、Cube/Vector、PTO 指令、设备控制流和 CANN ABI 固化进多级图与 pass；优势是硬件协同深，代价是后端耦合强 |
+| MLIR 型编译基础设施 | 复用 dialect、operation、rewrite、pass manager 和 LLVM lowering 生态 | PyPTO 自行实现不可变 [`IRNode`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/include/ir/core.h)、类型与结构化语句、[`IRVisitor/IRMutator`](https://gitcode.com/cann/pypto/tree/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/include/ir/transforms)、反射、verifier 和 [`Pass`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/include/ir/transforms/passes.h)，再桥接自有 `tile_fwk` 图，而非建立 MLIR dialect |
+| 图框架的算子捕获/融合 | 捕获现有算子图，选择或生成融合 kernel，复杂控制通常停留在 host | PyPTO 的 Python 控制流、符号 shape、Tensor alias/token、slot 与设备动态函数是同一编译对象，不只是在已定 kernel 范围内做融合 |
+| Ascend C/手写 CCE | 开发者直接管理核内存储、搬运、同步和指令组合 | 主 PyPTO 用 Tensor→Tile→Execute 多级 pass 自动承担这些决策；Pro 保留显式能力，但仍提供结构化 IR、SSA 转换、统一 codegen 和 JIT 装载 |
 
-**答案：PyPTO 使用两层自研中间表示：通用不可变 pypto::ir，以及承载 Tensor/Tile 编译历史能力的 npu::tile_fwk 图体系。**
+PyPTO 的差异化并不是“另一个 Python kernel 语法”，而是把 Tensor 图自动 lowering、设备侧动态 MPMD 和显式专家 kernel 放在一套 Ascend 垂直栈中。它选择用硬件专用性换取对性能决策和执行模型的控制力。
 
-### pypto::ir：新通用 IR 基础
+## 复用的公共组件
 
-- **[已验证]** [core.h](framework/include/ir/core.h) 定义 IRNode 和 ObjectKind；[expr.h](framework/include/ir/expr.h)、[stmt.h](framework/include/ir/stmt.h)、[type.h](framework/include/ir/type.h) 定义表达式、结构化控制流、TensorOpStmt、Scalar/Token/LogicalTensor/MemRef/Tile 等类型。
-- **[已验证]** IR 节点普遍由 shared_ptr<const T> 持有，变换通过 [IRVisitor/IRMutator](framework/include/ir/transforms/) 重建；GetFieldDescriptors() 是 visitor、mutator、结构等价、哈希、打印和 Python binding 的共享反射元数据。
-- **[已验证]** [builder.h](framework/include/ir/builder.h) 提供 BeginIf/For/While/Section、Emit、iterArg/returnVar 等结构化构图接口；[verifier](framework/src/interface/ir/verifier/) 校验 SSA、use-before-def、控制流 yield 数量和类型约束。
-- **[已验证]** Pass 抽象支持 required/produced/invalidated IRProperty，具体 factory 位于 [passes.h](framework/include/ir/transforms/passes.h)。
+| 公共组件 | 使用位置 | 在 PyPTO 中承担的职责 |
+|:---|:---|:---|
+| Python `ast`、`inspect` | [`parser.py`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/pil/parser.py)、[`entry.py`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/frontend/parser/entry.py) | 取得 Python 函数源码并构造前端控制流，不自行开发 Python 语法解析器 |
+| PyTorch、torch_npu | [`entry.py`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/frontend/parser/entry.py)、[`jit.py`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/jit.py) | Tensor、dtype、stream、device 与分布式生态入口 |
+| pybind11 | [`python/src/bindings`](https://gitcode.com/cann/pypto/tree/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/src/bindings) | 把 C++ IR、pass、Tensor 和 runtime 能力暴露给 Python |
+| CMake、setuptools | [`CMakeLists.txt`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/CMakeLists.txt)、[`setup.py`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/setup.py) | C++/Python 混合工程的配置、构建与分发 |
+| PTO headers、Bisheng | [`codegen_npu.cpp`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/codegen/npu/codegen_npu.cpp)、[`compile_config.py`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/compile_config.py) | 承接 PyPTO 已完成领域 lowering 的 CCE/PTO 源码，生成 AI Core 目标代码 |
+| CANN ACL/Runtime/HAL/HCOMM/ADump/MsProf | [`framework/src/adapter`](https://gitcode.com/cann/pypto/tree/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/adapter) | 设备、内存、流、通信、诊断和性能数据接口 |
+| LLVM 独立工具和 Bisheng `-mllvm` 接口 | [`PvModelImpl.h`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/cost_model/simulation_pv/PvModelImpl.h)、[`_DEFAULT_CCE_JIT_COMPILE_CONFIG`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/compile_config.py) | 使用 `llvm-objcopy` 及向外部编译器透传 LLVM 风格参数；PyPTO 本身没有 LLVM/MLIR IR lowering 依赖 |
 
-### Tensor 语义层：LogicalTensor、token、动态 shape、slot
+公共组件的复用集中在语言宿主、Tensor 生态、binding、工程系统和目标工具链；直接决定 PyPTO 编程语义与性能策略的部分仍由项目掌握。
 
-- **[已验证]** [LogicalTensor](framework/src/interface/tensor/logical_tensor.h) 继承 ir::Var，关联 RawTensor、offset、shape、dynValidShape、storage、producer/consumer 和 read/write token。
-- **[已验证]** [symbolic_scalar.h](framework/src/interface/tensor/symbolic_scalar.h) 表达动态 shape 和符号约束；CollectScalarVarRefs 会把 dynValidShape 中的标量视为真实 use。
-- **[已验证]** TensorOpStmt 的 result_token、tokens 将内存访问顺序显式化；[InferTokenPass](framework/src/interface/ir/transforms/infer_token_pass.cpp) 和 RemoveRedundantTokenPass 分别建立、精简 WAW/WAR 等依赖。
-- **[已验证]** [TensorSlotManager](framework/src/interface/tensor/tensor_slot.cpp) 与 RootFunctionBuilder 将 if/loop/call 两侧的逻辑 Tensor 绑定到一致运行时 slot，贯通结构化 IR 和动态设备程序。
-- **[推断]** dynamic valid shape、内存 token 和 slot 的联合表达，是 PyPTO 为动态图与设备侧调度定制的核心 IR 语义，不只是通用 SSA 容器。
+## 可复用但自行开发的部分及原因
 
-### tile_fwk 图体系：成熟 lowering 载体
+| 自行开发部分 | 原本可复用的通用能力 | 选择自研形成的实际价值 |
+|:---|:---|:---|
+| PIL 与 dispatcher | Python AST 框架、通用 tracing/graph capture | [`PIL Function/Block/Call/Value/Jump`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto/pil/pir.py) 专门保留分支、循环、变量写入和 Tensor 发射时序，可直接构造动态 Tensor IR |
+| `pypto::ir` | MLIR、LLVM IR 或其他编译 IR | 自有 [`Expr/Stmt/Type`](https://gitcode.com/cann/pypto/tree/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/include/ir) 能把 `LogicalTensorType`、`TileType`、`TokenType`、结构化控制流和 Python binding 放入同一对象模型，并同时服务主路线与 Pro |
+| Tensor 领域语义 | 通用 SSA、alias analysis、shape expression | [`InferTokenPass`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/ir/transforms/infer_token_pass.cpp) 把 Tensor 读写顺序显式化；dynamic valid shape、RawTensor 版本、slot 与 incast/outcast 则对应 PyPTO 的动态设备程序，不是通用 SSA 可以直接替代的概念 |
+| `tile_fwk` 多级图及 46-pass 流水 | 通用 graph compiler、自动调度框架 | [`PVC2_OOO`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/passes/pass_mgr/pass_manager.cpp) 直接编码 Ascend 的 Tensor→Tile 展开、存储层级、Cube/Vector、搬运、融合、同步和 OOO 规则，是自动性能路线的核心资产 |
+| CCE/PTO CodeGen | 通用 C++ emitter 或现成 kernel backend | [`CodeGenFactory`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/codegen/codegen_factory.h) 按 NPU 架构选择生成器，自有 emitter 可以保留 pass 已决定的地址空间、核型、TileOp 与同步语义 |
+| 动态 device machine | 通用 host launcher、传统 kernel runtime | [`framework/src/machine`](https://gitcode.com/cann/pypto/tree/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/machine) 把控制流、表达式表、leaf binary 和 Tensor slot 编成设备可消费的程序，支撑主路线特有的 AICPU + AI Core MPMD |
+| Pro DSL、CCECodegen 与 JIT | 现成 kernel DSL/JIT | 自有路线可直接表达 Ascend Cube/Vector、PTO Tile、寄存器与 SIMT，并让 [`resolve_kernel_target`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/compile_config.py) 同时约束编译目标和 launch geometry，避免 ABI 信息分散 |
 
-- **[已验证]** [function.h](framework/src/interface/function/function.h) 的 FunctionType 和 GraphType 区分 dynamic、Tensor Graph、Tile Graph、Execute/Block/Leaf 等编译状态；Operation 还承载旧 Pass 使用的 producer/consumer、内存和调度元数据。
-- **[已验证]** 新 IR 没有直接替换该体系，而是通过 CreateRootFunctions/RootFunctionBuilder 转入它。
-- **[推断]** 当前是迁移期双 IR 架构：新 IR 改善前端结构化表示和验证，旧图体系继续承载已经成熟的自动 Tile 化、内存与调度 Pass。
+这里的共同原因不是拒绝公共生态，而是现成组件无法直接覆盖“动态 Tensor 图—Ascend 多级图—设备 MPMD”这组联合语义。PyPTO 复用宿主生态与目标工具链，把自研投入集中在决定抽象层级、自动优化质量和设备执行方式的中间层。
 
----
+## 特色架构：双 IR、双路线、一个硬件底座
 
-## 问题五：最具竞争力的 Lowering 和 Pass 是怎样实现的？
+当前架构包含两个“并存”而非简单重复的维度：
 
-**答案：前半段先把动态 Tensor 程序规范化并建立内存依赖，后半段用 PVC2_OOO 的 46 个 Pass 完成从 Tensor 图到硬件可生成图的自动映射。**
+1. **双 IR。** 新 [`pypto::ir`](https://gitcode.com/cann/pypto/tree/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/include/ir) 提供不可变节点、结构化控制流、SSA、类型、反射与 verifier；旧 [`tile_fwk::Function/Operation`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/function/function.h) 保留成熟的 Tensor/Tile/Execute 图和调度、内存元数据。连接点是 [`RootFunctionBuilder`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/tensor/ir_func_builder.cpp)。
+2. **双编程路线。** 主路线通过桥接复用 `tile_fwk` 自动 lowering；Pro 复用新 IR，却跳过主路线多级图，直接经 SSA 和 CCECodegen 生成 kernel。
+3. **一个硬件底座。** 两条路线最终都使用 PTO/CCE、Bisheng、CANN runtime 和 Ascend AI Core，只是在“由编译器还是用户决定硬件细节”以及“MPMD 还是 SPMD”上分工。
 
-### 新 IR 前置流水
+这一架构解释了 PyPTO 的演进方式：新 IR 可以先改善前端结构、控制流和公共类型系统，而不必重写全部成熟 pass；Pro 又可以借新 IR 快速建立短路径。与此同时，两套 lowering 暂时保留各自适合的执行模型。
 
-- **[已验证]** [compile_pipeline.py::_build_default_pipeline](python/pypto/pil/compile_pipeline.py) 当前依次运行：
-  1. InferTokenPass；
-  2. Canonicalize + AggressiveDCE 两轮；
-  3. MergeStmtsIntoIf + Canonicalize；
-  4. SimplifySymbolicScalar；
-  5. RemoveRedundantTokenPass；
-  6. CreateRootFunctions；
-  7. FinalizeDynamicFunction。
-- **[已验证]** InferToken/RemoveRedundantToken 把 Tensor alias 和读写危险转换为显式 token 边；Canonicalize/DCE 清理无效 carry 和死代码；MergeStmtsIntoIf 将后继语句下沉到分支并可用符号可满足性裁剪路径。
-- **[推断]** 前置流水的目标不是完成硬件 lowering，而是把 Python 产生的动态图变成依赖明确、控制流闭合、适合分段进入旧图后端的 IR。
+## 已做的发展方向
 
-### 新旧 IR 的关键腰部
+### 从框架骨架到可用 Tensor 编程栈
 
-- **[已验证]** [RootFunctionBuilder](framework/src/interface/tensor/ir_func_builder.cpp) 为 dynamic root 中的 TensorOpStmt 段创建 hidden/path function，插入 CALL Operation，并建立 incast/outcast 与 Tensor slot。
-- **[已验证]** [FinalizeDynamicFunction](framework/src/interface/tensor/ir.cpp) 完成动态图函数和编译任务提交。
-- **[推断]** 这是当前技术路线最关键也最脆弱的接口：它让新前端复用成熟后端，但必须保持 SSA/token、alias、dynamic valid shape、控制流 carried value 与旧图 slot 语义等价。
+项目已经历 [v0.1.0 初始发布、v0.1.1 新前端、v0.1.2 集群与编译性能、v0.2.0 前端表达重构](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/README.md)，当前 Python distribution 为 [`0.2.1`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/pyproject.toml)。Tensor API、动态 shape、多级图、MPMD、工具链和集群能力已经组成完整产品轮廓。
 
-### PVC2_OOO 多级图流水
+### 新前端和新 IR 接入成熟后端
 
-- **[已验证]** [BuildPvc2OooPassEntries](framework/src/passes/pass_mgr/pass_manager.cpp) 固定注册 46 个 Pass，核心能力可归为：
-  - 语义与格式：InferTensorFormat、AutoCast、RemoveRedundantReshape、InferMemoryConflict；
-  - Tensor→Tile：ExpandFunction、SplitRawTensor、SplitReshape、GraphPartition、SubgraphToFunction；
-  - 数据搬运与存储：AssignMemoryType、NBufferMerge、L1CopyInReuseMerge、GenerateMoveOp、PadLocalBuffer；
-  - 融合与图优化：CommonOperationEliminate、ReduceCopyMerge、VFFusionClusterIdentify；
-  - 调度与同步：OoOSchedule、TuneTileOpSeqForVF、InsertSync、TuneSyncForVF、MixSubgraphSplit；
-  - 内存生命周期与生成准备：AddAlloc、RemoveAlloc、LastUseMark、GlobalMemoryReuse、CodegenPreproc。
-- **[已验证]** ExpandFunction 是 Tensor Graph 阶段边界，SubgraphToFunction 是 Tile Graph 阶段边界；ExecuteGraph 另执行 DynAttrToStatic 和 LoopaxesProc。
-- **[推断]** PyPTO 的主要编译护城河集中在这套 Pass：它把 Ascend 的 Cube/Vector 异构核、多级存储、搬运流水、同步和乱序执行约束编码成可组合的图变换，而不是把这些决策全部推给用户或外部后端。
+- [`062c219f`](https://gitcode.com/cann/pypto/commit/062c219f2881116a83d916fe65805f5c1a2921f7) 将新 IR 编译流水接入 JIT 并加入路径开关；
+- [`7964a2a4`](https://gitcode.com/cann/pypto/commit/7964a2a4f71a4eca147c2a460e75d2e9f345f873) 把新流水接到既有 HostMachine；
+- [`50a7132d`](https://gitcode.com/cann/pypto/commit/50a7132d9577e1b70177b3a6e961dd8045a10742) 推导 Tensor 图读写 token，[`a55a7025`](https://gitcode.com/cann/pypto/commit/a55a702506bd190f1dc2f570540f557dcb69f2a2) 加入冗余 token 消除；
+- [`46c71146`](https://gitcode.com/cann/pypto/commit/46c711463a9f57add9164bc97c2a6f7431f50915) 继续让成熟 pass 适配新 IR 特性。
 
----
+这条路线已经完成默认入口、结构化 IR、token 依赖和旧后端桥接的主骨架，采用渐进替换而非整栈重写。
 
-## 问题六：CCE/PTO CodeGen、Bisheng 和 CANN/Ascend 的边界在哪里？
+### PyPTO Pro 从新路径扩展到显式硬件编程
 
-**答案：PyPTO 决定图结构、Tile 操作、内存、调度与同步，并生成 CCE/PTO 源码；Bisheng 把该源码编译为 AI Core 目标代码；CANN 提供工具链、运行库、通信和设备接口。**
+- [`c944f459`](https://gitcode.com/cann/pypto/commit/c944f45988e94a86b28ee8b1620f6e524cd8a9fb) 落地 Pro 前端和 codegen；
+- [`d71f7ed1`](https://gitcode.com/cann/pypto/commit/d71f7ed16ed2c6b25c805510deb7e2a6df21d128) 加入 SIMT；
+- [`5b25e40b`](https://gitcode.com/cann/pypto/commit/5b25e40b4d3045de1124e706d658572c3d3d35c8) 加入 Tile/TileGroup 零拷贝 reinterpret；
+- [`852afc47`](https://gitcode.com/cann/pypto/commit/852afc47758a9ecac33193399859201e366743c6) 扩展 GM NZ，[`9c264475`](https://gitcode.com/cann/pypto/commit/9c2644752c7aeff0a22b783275b2bd6f3a7a61b8) 扩展 A5 SIMT gather/index-put；
+- [`e23f9ee7`](https://gitcode.com/cann/pypto/commit/e23f9ee7dedd1ca2980418547ed9b9dc128abceb) 移除早期 `pl.function`、`pl.program` 抽象，表明 API 已从原型继续收敛。
 
-| 层次 | 责任与证据 |
-|---|---|
-| PyPTO Pass | **[已验证]** 决定 format/cast、子图、memory type、alloc/reuse、TileOp 顺序、同步和 leaf function，见 framework/src/passes。 |
-| PyPTO CodeGen | **[已验证]** [CodeGenFactory](framework/src/codegen/codegen_factory.h) 按 NPUArch 选择 CloudNPU/LiteNPU 实现；[CodeGenNPU::GenCode](framework/src/codegen/npu/codegen_npu.cpp) 把 Operation 转为 CCE/PTO TileOp 源码和编译任务。 |
-| CCE/PTO 表达 | **[已验证]** CodeGen 输出 CCE C++ 与 PTO intrinsic/header；内存地址空间、Cube/Vector core type、Tile 指令和同步选择已经包含在生成源码中。 |
-| Bisheng | **[已验证]** [CodeGenNPU::PrepareCmd](framework/src/codegen/npu/codegen_npu.cpp) 构造 bisheng -c -O3 -g -x cce 命令；Pro 的 [_run_bisheng](python/pypto_pro/runtime/jit.py) 用 -xcce、架构、PTO include 和 CANN link 参数生成共享库。 |
-| CANN | **[已验证]** 顶层 [CMakeLists.txt](CMakeLists.txt) 通过 find_cann_package 依赖 acl_rt、ascend_dump、ascend_hal、hcomm、runtime、securec；adapter 层封装 ACL/Runtime/HAL/HCOMM/ADump/MsProf。 |
-| Ascend 设备 | **[已验证]** 执行 Bisheng 产出的 AI Core 代码；主路线另有 AICPU 控制程序负责动态调用不同 leaf。 |
+### 面向 A5、Vector Fusion 与设备调度深化
 
-- **[推断]** PyPTO 与外部后端的分界不是“高层图交给 CANN 自动优化”，而是“PyPTO 已完成大部分领域特定 lowering，再把具体 CCE/PTO 程序交给 Bisheng 做目标编译”。
-- **[推断]** 这种边界使 PyPTO 能深度控制 Ascend 特有的 Tile、Cube/Vector、内存和同步策略，同时也造成对 PTO headers、Bisheng 参数、CANN ABI 和设备版本的强耦合。
-- **[未验证]** Bisheng 如何在内部进一步 lower CCE/PTO、是否以及如何使用 LLVM/MLIR，不在当前仓库中，不能由 PyPTO 源码确认。
+截至基线前，项目已连续扩展 A5 dtype、layout 与 SIMT 能力；[`fe20d726`](https://gitcode.com/cann/pypto/commit/fe20d7268e99a748ea649909e3a71524ac188981) 加入 Vector Fusion cluster 识别，[`10a0fc5a`](https://gitcode.com/cann/pypto/commit/10a0fc5a8d6fe9b3d39b29720fa201efcf962fd5) 让 OOO schedule 适配 VF，[`f87a7060`](https://gitcode.com/cann/pypto/commit/f87a70601f84005117cadcaa82feb28ec5785f72) 继续增强 VF 的同步与 loop-axis 处理。设备侧则已有控制流 cache、early launch、任务队列与异常诊断等连续建设。
 
----
+## 正在做的发展方向
 
-## 问题七：哪些编译设施是复用的，哪些是 PyPTO 自研的？
+“正在做”由基线附近连续提交共同呈现，重点不是新增独立子系统，而是让已落地的双路线在正确性、性能和工程可用性上继续闭环。
 
-| 设施 | 归属 | 判断 |
-|---|---|---|
-| Python inspect/ast | Python 标准库 | **[已验证] 复用。** ast2pil 读取源码并遍历 Python AST。 |
-| pybind11/Python extension | 第三方/C++ binding | **[已验证] 复用。** python/src/bindings 将 IR、Tensor、Pass、Runtime 暴露给 Python。 |
-| Torch/torch_npu Tensor 接入 | PyTorch/Ascend 生态 | **[已验证] 复用。** JitCallableWrapper 和 runtime binding 接收 torch.Tensor/stream。 |
-| PIL 前端表示与 dispatcher | PyPTO | **[已验证] 自研。** 位于 python/pypto/pil。 |
-| pypto::ir、IRBuilder、Visitor/Mutator、Verifier | PyPTO | **[已验证] 自研。** 位于 framework/include/ir 与 framework/src/interface/ir。 |
-| LogicalTensor、SymbolicScalar、token、slot | PyPTO | **[已验证] 自研领域抽象。** 位于 framework/src/interface/tensor。 |
-| tile_fwk Function/Operation、多级图 Pass | PyPTO | **[已验证] 自研核心 lowering。** 位于 framework/src/interface 与 framework/src/passes。 |
-| CCE/PTO CodeGen | PyPTO 生成逻辑 + CANN PTO 接口 | **[已验证] PyPTO 自研生成器复用外部 PTO 指令/header。** |
-| Bisheng | CANN/Ascend 外部工具链 | **[已验证] 直接复用。** PyPTO 通过命令行调用，不包含其编译器实现。 |
-| ACL、runtime、HAL、HCOMM、dump/profiling | CANN | **[已验证] 直接复用。** 由 find_cann_package 和 adapter 接入。 |
-| LLVM 独立工具 | LLVM 工具集 | **[已验证] 辅助复用。** PvModelImpl.h 调用 llvm-objcopy；异常文档使用 llvm-symbolizer，不属于核心 lowering。 |
-| LLVM/MLIR 编译框架 | 未发现直接依赖 | **[已验证] 当前 CMake/源码没有 find_package、include、link 或 IR lowering 证据。** |
+### 1. 让 token/alias 成为调度与内存优化的硬约束
 
-**关于 MLIR/LLVM 的准确结论：**
+[`af3848f3`](https://gitcode.com/cann/pypto/commit/af3848f37c47eb64474bf218f6210ad540451390) 修复原地操作 token 保留，[`d434158c`](https://gitcode.com/cann/pypto/commit/d434158c6e7e387a74fd975da16f1e63dd11dbde) 用有序 WAW 保证跨循环 atomic-add 的确定性。基线之后紧邻的 [`af153920`](https://gitcode.com/cann/pypto/commit/af1539200b459c22979d658e4b590b0cc91f72ef) 继续保留 shared view 的 overlap dependency，[`ead80e92`](https://gitcode.com/cann/pypto/commit/ead80e92310a1b60e001d71799400ed936b20469) 让 OOO schedule 遵循 token dependency。方向已经从“IR 中存在 token”转为“后续调度、融合和内存判断一致消费 token”。
 
-- **[已验证]** PyPTO 当前不是 MLIR-based compiler；核心 IR、Pass、Verifier、多级图和 CCE/PTO CodeGen 均为仓库内自研实现。
-- **[已验证]** 仓库有 PTO MLIR 术语痕迹，例如 [ptr_ops.py](python/pypto_pro/ir/op/ptr_ops.py)、[PtrType](framework/include/ir/type.h)、[codegen_base.h](framework/include/pypto_pro/codegen/codegen_base.h) 和 jit.py::_get_mlir_code，但当前生产路径实际调用 _codegen_target_cce/CCECodegen，未发现 MLIR backend。
-- **[已验证]** Pro 通过 [JitCompileConfig](python/pypto_pro/runtime/compile_config.py) 向 Bisheng 透传 -mllvm 参数；这证明存在 LLVM 风格的外部后端参数接口，不证明 PyPTO 直接使用 LLVM API 或 LLVM IR。
-- **[推断]** PyPTO IR 的 SSA、类型系统、MemRef、结构化控制流、Pass 和 Verifier 与现代编译器 IR 有概念相似性。
-- **[未验证]** 当前没有官方设计说明证明 PyPTO IR 由 MLIR 派生、兼容 MLIR、以 MLIR 为模板，或与 MLIR 设计完全无关。因此“不是 MLIR”不能被扩大为“所有 IR 设计风格完全不一致”。
+### 2. 新旧 IR 桥接处持续补齐等价语义
 
----
+近期提交集中在 dynamic valid shape、assemble/outcast alias、slot 生命周期和依赖刷新：[`59b692c2`](https://gitcode.com/cann/pypto/commit/59b692c22b923cc948c9422f25c3444951c77110) 按分支条件选择合并 valid shape，[`ddeb250e`](https://gitcode.com/cann/pypto/commit/ddeb250e1e332c861a637fc6f9f95cb2bc83d666) 在重排中保留 outcast alias，[`358dab96`](https://gitcode.com/cann/pypto/commit/358dab9618ebccb7f5719100593427f2217ba051) 延迟分配跨图 outcast slot，[`bf599774`](https://gitcode.com/cann/pypto/commit/bf599774e2b38de2c8139cebeca7563865f35d1c) 在删除 operation 后刷新变量依赖。它们共同指向 [`RootFunctionBuilder`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/tensor/ir_func_builder.cpp) 周围的新旧语义一致性建设。
 
-## 问题八：为理解编译产物，最少需要知道哪些 Runtime 内容？
+### 3. Vector Fusion 与 OOO 流水继续协同
 
-**答案：只需区分主路线的动态 MPMD 产物和 Pro 的单 kernel SPMD 产物。**
+[`0d17f3e2`](https://gitcode.com/cann/pypto/commit/0d17f3e2c31cd9b69ce977ad01128642e190973f) 按 HLF 模式控制 VF cluster 识别，[`724e0c74`](https://gitcode.com/cann/pypto/commit/724e0c74317531ff9180b53979d307854c3370c8) 收紧 VF fusion prefix 兼容性，[`1aeae00c`](https://gitcode.com/cann/pypto/commit/1aeae00cc957ce8435f0928d25921e51d0f940f3) 将 OOO spill 重构为表驱动流程。可见的目标是把 VF 从孤立融合能力接入调度、同步、spill 和图合法性判断，成为稳定的执行图优化阶段。
 
-### 主 pypto 产物
+### 4. PyPTO Pro API、自动流水与 A5 能力快速收敛
 
-- **[已验证]** [CompileDyndevFunction](framework/src/machine/host/backend.cpp) 依次执行 ExecuteGraph、构建控制流/表达式表、编译 AICPU 控制程序、生成并编译 AI Core leaf、编码 DevAscendProgram。
-- **[已验证]** [KernelModule](python/src/bindings/runtime.cpp) 与 [DeviceLauncher](framework/src/machine/runtime/launcher/device_launcher.cpp) 负责匹配参数、准备 workspace/slot/stream 并启动设备程序。
-- **[已验证]** AICPU 根据控制流和 task ID 调用不同 AI Core 子函数，入口协议见 [aicore_entry.h](framework/src/interface/machine/device/tilefwk/aicore_entry.h)。
-- **[推断]** Runtime 在主路线中不是普通 kernel launcher，而是编译器动态控制流语义的执行端；这解释了为什么 token、slot、path/hidden function 和 AICPU 编译属于编译链核心。
+[`ac2e5899`](https://gitcode.com/cann/pypto/commit/ac2e58991b9345869e814ec35839955499869929) 重构 Pro auto pipeline；相邻提交持续增加 load/store layout 校验、Tile address capacity、sync path、GM NZ、SIMT 和高精度函数能力。其技术方向是保持显式编程可控性的同时，把目标选择、ABI、参数合法性和常用流水规则前置到 [`JitCompileConfig`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/compile_config.py) 与前端，使错误更早暴露、生成路径更一致。
 
-### pypto_pro 产物
+### 5. 设备动态调度向低开销和可恢复演进
 
-- **[已验证]** Pro 生成一个内容 hash 命名的 call_kernel_<hash>.so，Python 用 ctypes 加载 call_kernel，并传入 stream、block_dim 和 ABI 参数。
-- **[已验证]** 多个逻辑 AI Core 执行同一 kernel，通过 block index 分工，属于 SPMD。
-- **[推断]** Pro Runtime 更接近传统 JIT kernel launcher，复杂性主要留在显式 DSL、CCECodegen 和 Bisheng 编译阶段。
+[`22f9f88f`](https://gitcode.com/cann/pypto/commit/22f9f88fb54e3439ea93e61b183aecc33d13a62c) 支持 host control-flow cache，[`2af4f3f6`](https://gitcode.com/cann/pypto/commit/2af4f3f6ad66a46c43384901f389ae564620f687) 与 [`9d7444c5`](https://gitcode.com/cann/pypto/commit/9d7444c5ef1521b27125080f9e83301ce05f1bc0) 推进 early launch，[`b1324ce3`](https://gitcode.com/cann/pypto/commit/b1324ce34fdb645986f12213f9b4da7fe074a7e6) 处理 early-launch slot 复用同步，[`33f14b4f`](https://gitcode.com/cann/pypto/commit/33f14b4fecc48a769158b2fe97a770ad6cb7dbf0) 修复 control-flow cache。主线在保留设备动态性的同时，持续压缩控制开销，并补齐 cache 恢复、slot 生命周期和异常路径。
 
-除上述 ABI、控制流和启动模型外，workspace 分配细节、profiling、dump、分布式初始化和发布脚本不影响本报告对编译技术路线的判断，因此不展开。
+## 技术路线总结
 
----
+PyPTO 的核心资产可以归纳为三层：上层用 PIL 与 `pypto::ir` 保留 Python 动态 Tensor 语义；中层用 `tile_fwk` 多级图和 PVC2_OOO 把 Tensor 程序变成 Ascend 硬件感知的 Tile/Execute 图；下层用 CCE/PTO、Bisheng、CANN 和设备 machine 形成 MPMD 执行闭环。PyPTO Pro 在同一硬件底座上提供显式 Tile/Reg/SIMT 的短路径。
 
-## 问题九：这条技术路线相对同类编译器的差异化优势是什么？
-
-### 1. 高层动态语义与底层 Tile 编译在一套系统内闭环
-
-- **[已验证]** Python 分支/循环、SymbolicScalar、dynValidShape、token、slot、AICPU 控制流和 AI Core leaf 存在贯通实现。
-- **[推断]** 这使 PyPTO 能处理“运行时变化，但仍需生成高性能 Tile 程序”的场景，区别于只能静态展开或只生成单个 SPMD kernel 的简单 DSL。
-
-### 2. 硬件感知决策前移到领域 Pass
-
-- **[已验证]** PVC2_OOO 显式处理 Cube/Vector、format、memory type、L1 reuse、N-buffer、VF fusion、OOO schedule、sync 和 global memory reuse。
-- **[推断]** PyPTO 不完全依赖通用编译器后端猜测 Tensor 语义，而是在信息尚未丢失时完成 Ascend 领域优化，理论上更容易取得稳定性能。
-
-### 3. 自动与显式两种生产力层级并存
-
-- **[已验证]** 主 pypto 提供 Tensor 自动 lowering；pypto_pro 提供 Tile/Reg/SIMT 和 Cube/Vector section。
-- **[推断]** 同一产品可覆盖算法开发者和性能专家，并有机会让 Pro kernel 成为主 Tensor 图的高性能叶子实现。
-
-### 4. 与 CANN 垂直集成
-
-- **[已验证]** 编译器直接掌握 PTO 源码、Bisheng 参数、CANN runtime、HCOMM、设备控制流和 profiling/dump 接口。
-- **[推断]** 垂直集成缩短了新硬件能力到 DSL/Pass 的路径，但可移植性和工具链兼容成本高于后端中立方案。
-
----
-
-## 问题十：核心编译路线目前最大的风险和未完成部分是什么？
-
-### 1. 新旧 IR 桥接是最高风险点
-
-- **[已验证]** 新 pypto::ir 经 CreateRootFunctions 转入旧 tile_fwk::Function/Operation；两侧分别维护 SSA/token 与 producer/consumer/GraphType/slot。
-- **[推断]** alias、dynamic valid shape、控制流 carried value 或 slot 的任何不等价，都可能在较晚的 Pass、内存复用或设备执行阶段表现为精度问题。
-
-### 2. 两条路线共享底座但后端尚未统一
-
-- **[已验证]** 主路线走 PVC2_OOO 和 MPMD；Pro 走 ConvertToSSA、直接 CCECodegen 和 SPMD。
-- **[推断]** 若 Tensor/Tile/MemorySpace/同步能力在两条路线中独立演进，可能产生概念重名、能力表重复和行为差异。
-
-### 3. 新通用 IR 的完整 lowering 尚未落地
-
-- **[已验证]** [passes.cpp](framework/src/interface/ir/transforms/passes.cpp) 中 InitMemRef、BasicMemoryReuse、AllocateMemoryAddr、OutlineIncoreScopes、ConvertTensorToBlockOps、FlattenCallExpr、NormalizeStmtStructure、FlattenSingleStmt 当前返回 identity/no-op。
-- **[推断]** 新 IR 目前不能独立承担完整 Tensor→设备 lowering，主路线仍依赖旧图后端。
-
-### 4. 默认路径与部分文档仍处迁移期
-
-- **[已验证]** entry.py 的 jit 默认 new_ir=True，而 [developer_doc_zh.md](python/pypto/frontend/developer_doc_zh.md) 仍重点描述旧 doc-AST/Parser 路线；new_ir=False 仍保留兼容入口。
-- **[推断]** 开发者可能在错误的前端层实现功能，或只验证其中一条路径。
-
-### 5. 编译 session 和工具链耦合限制工程扩展
-
-- **[已验证]** IRContext::Get()、Program::GetInstance()、ConfigManager、HostMachine 等存在进程级状态；Python 批量测试要求 --forked 隔离。
-- **[已验证]** 生成与运行依赖 CANN、PTO headers、Bisheng、driver 和具体 NPUArch。
-- **[推断]** 多线程并行 JIT、跨版本复现、社区无设备开发和跨后端移植成本较高。
-
----
-
-## 问题十一：Git 历史显示技术路线正在怎样演进？
-
-**答案：2026 年 7 月以后，主线明显同时推进“新 IR 接入成熟后端”和“Pro 显式直达 CCE”两条方向。**
-
-| commit | 日期 | 已验证的路线信号 |
-|---|---|---|
-| 062c219f2881116a83d916fe65805f5c1a2921f7 | 2026-07-07 | refactor(frontend): Wire new IR compile pipeline and add jit flag；新 IR 正式接入 JIT。 |
-| 7964a2a4f71a4eca147c2a460e75d2e9f345f873 | 2026-07-08 | feat(ir): Add host_machine to compile_pipeline；新 IR 接到既有 HostMachine。 |
-| c944f45988e94a86b28ee8b1620f6e524cd8a9fb | 2026-07-18 | feat(pypto_pro): Add pypro_pro codegen and frontend；Pro 前端和 codegen 落地。 |
-| 50a7132d9577e1b70177b3a6e961dd8045a10742 | 2026-08-13 | feat(ir): Infer read and write tokens in tensor graphs；新 IR 补强内存依赖。 |
-| a55a702506bd190f1dc2f570540f557dcb69f2a2 | 2026-08-20 | feat(ir): Add remove_redundant_token_pass；token 管线继续完善。 |
-| d71f7ed16ed2c6b25c805510deb7e2a6df21d128 | 2026-08-21 | feat(pypto_pro): Support pypto_pro SIMT；Pro 扩展到显式 SIMT。 |
-| e23f9ee7dedd1ca2980418547ed9b9dc128abceb | 2026-08-28 | feat(pypto_pro): Remove pl.function and pl.program；Pro API/IR 仍在快速收敛。 |
-
-- **[已验证]** 当前基线为 5d6afbe0d，git describe 为 v9.2.0-beta.2-322-g5d6afbe0d；version.cmake 的 CANN 产品包版本是 9.2.0，pyproject.toml 的 Python distribution 版本是 0.2.1。
-- **[推断]** 主路线采取的是“新前端/新 IR 渐进替换、成熟后端继续复用”，而不是一次性重写全部编译器；Pro 则作为更短的新路径快速迭代。
-- **[未验证]** 仓库没有给出两条路线最终是否合并、何时移除旧前端/旧图、是否引入 MLIR backend 的正式路线图。
-
----
-
-## 问题十二：后续演进应优先做什么，才能强化核心竞争力？
-
-1. **[建议] 把 RootFunctionBuilder 变成有显式契约的 lowering 边界。** 在桥接前后验证 alias/raw-memory ID、token、dynValidShape、control-flow carry、incast/outcast 和 slot 等价，并建立最小差分 golden。
-2. **[建议] 渐进迁移成熟 Pass，而不是重写 PVC2_OOO。** 先选择 token/sync、format/type inference、简单 elementwise Tile lowering 等可独立验证环节，在新 IR 和旧图上做差分。
-3. **[建议] 统一两条路线的硬件语义事实源。** MemorySpace、layout、Tile 能力、dtype 约束、Cube/Vector/SIMT、同步与 SoC feature 应由同一套 schema/query 提供。
-4. **[建议] 明确主 Tensor 图调用 Pro leaf 的 ABI。** 若将 Pro 作为手工优化叶子，需要定义 shape specialization、workspace、stream、异常、profiling、cache key 和调度接口。
-5. **[建议] 收口未实现 Pass。** 对 identity/no-op factory 标注 experimental/deprecated，或为其定义 owner、IRProperty、里程碑和端到端测试。
-6. **[建议] 引入显式 CompilationSession。** 逐步封装 Program、IRContext、配置、ID generator 和缓存，减少全局状态对并行 JIT 和可复现性的限制。
-7. **[建议] 建立 Python→PIL→IR→Graph→CCE→device task 的统一追踪 ID。** 让源码 span、IR stage、Function hash、kernel name 和设备 task ID 可关联，降低跨层定位成本。
-
-- **[推断]** 最有价值的演进方向不是增加更多外围 API，而是让两条编译路线共享更多硬件语义、提高新旧 IR 桥接可证明性，并逐步形成“高层自动编译可调用低层专家 kernel”的组合能力。
-
----
-
-## 关键证据索引
-
-### Python 前端与新 IR
-
-- [python/pypto/frontend/parser/entry.py](python/pypto/frontend/parser/entry.py)：JitCallableWrapper、compile_new、jit(new_ir=True)
-- [python/pypto/pil/parser.py](python/pypto/pil/parser.py)：ast2pil、visit_if/for/while
-- [python/pypto/pil/pir.py](python/pypto/pil/pir.py)：PIL 数据结构、BuildContext、Scope、Journal
-- [python/pypto/pil/dispatcher.py](python/pypto/pil/dispatcher.py)：dispatch_block、dispatch_call
-- [python/pypto/pil/ops.py](python/pypto/pil/ops.py)：if_else_impl、loop_impl、carriable_names
-- [python/pypto/pil/compile_pipeline.py](python/pypto/pil/compile_pipeline.py)：默认新 IR pipeline
-
-### IR、桥接和 Pass
-
-- [framework/include/ir/](framework/include/ir/)：core/expr/stmt/type/builder/function/program、transforms、verifier 接口
-- [framework/src/interface/ir/](framework/src/interface/ir/)：通用 IR 实现与 Pass
-- [framework/src/interface/tensor/](framework/src/interface/tensor/)：LogicalTensor、SymbolicScalar、token、slot、RootFunctionBuilder
-- [framework/src/interface/function/function.h](framework/src/interface/function/function.h)：FunctionType、GraphType
-- [framework/src/passes/pass_mgr/pass_manager.cpp](framework/src/passes/pass_mgr/pass_manager.cpp)：PVC2_OOO、ExecuteGraph
-- [framework/src/passes/](framework/src/passes/)：Tensor/Tile/Block Graph Pass 实现
-
-### CodeGen、外部工具链与最小 Runtime
-
-- [framework/src/codegen/codegen_factory.h](framework/src/codegen/codegen_factory.h)：CodeGenFactory
-- [framework/src/codegen/npu/codegen_npu.cpp](framework/src/codegen/npu/codegen_npu.cpp)：CodeGenNPU、PrepareCmd
-- [framework/src/machine/host/backend.cpp](framework/src/machine/host/backend.cpp)：CompileDyndevFunction
-- [framework/src/machine/compile/aicore_compiler.cpp](framework/src/machine/compile/aicore_compiler.cpp)：AI Core 编译
-- [framework/src/machine/runtime/launcher/device_launcher.cpp](framework/src/machine/runtime/launcher/device_launcher.cpp)：DeviceLauncher
-- [python/pypto_pro/runtime/kernel.py](python/pypto_pro/runtime/kernel.py)：KernelDef
-- [python/pypto_pro/language/parser/_ast_parser.py](python/pypto_pro/language/parser/_ast_parser.py)：ASTParser
-- [framework/src/interface/pypto_pro/codegen/cce/cce_codegen.cpp](framework/src/interface/pypto_pro/codegen/cce/cce_codegen.cpp)：CCECodegen::GenerateSingle
-- [python/pypto_pro/runtime/compile_config.py](python/pypto_pro/runtime/compile_config.py)：CCE_BACKEND、JitCompileConfig
-- [python/pypto_pro/runtime/jit.py](python/pypto_pro/runtime/jit.py)：_codegen_target_cce、_run_bisheng
-- [CMakeLists.txt](CMakeLists.txt)：CANN package 依赖
-
-## 调研边界
-
-- **[已验证]** 本报告只分析固定 commit 5d6afbe0d 的当前仓库内容和本地 Git 元数据。
-- **[已验证]** 本次未修改仓库源代码；报告文件是唯一目标制品。
-- **[未验证]** 本机没有配置 CANN/NPU/Bisheng，未执行完整构建或上板测试；“存在某能力”的结论来自源码、测试和配置，不等价于本机动态验证。
-- **[未验证]** 对同类编译器的差异化判断没有引入外部竞品仓库做逐项基准，因此本报告只说明 PyPTO 自身实现形成的可观察差异，不声称性能领先。
+相比通用 Tensor 编译器、单 kernel DSL 或手写 CCE，这条路线最独特的组合是：**高层动态控制、自动多级 Tile lowering、设备侧 MPMD 与专家级 SPMD kernel 同时存在**。当前演进主线也围绕这套组合展开——强化 token/alias 对后端的约束，补齐新旧 IR 桥接语义，将 VF 与 OOO/同步协同，并让 Pro 和设备调度走向更稳定、更低开销的实现。
