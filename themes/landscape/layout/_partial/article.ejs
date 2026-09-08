@@ -24,5 +24,34 @@
         <%- post.content %>
       </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js" integrity="sha256-Wo7JGCC9Va/vBJBoSJNpkQ5dbOcMgQOVLyfinT526Lw=" crossorigin="anonymous"></script>
+    <script>
+      (function () {
+        function renderMermaid() {
+          if (!window.mermaid) return;
+          var blocks = document.querySelectorAll('.article-entry pre code.language-mermaid, .article-entry figure.highlight pre');
+          var diagrams = [];
+          blocks.forEach(function (code) {
+            var source = code.textContent.trim();
+            if (!/^(flowchart|graph|sequenceDiagram)\b/.test(source)) return;
+            var container = code.closest('figure') || code.parentElement;
+            var diagram = document.createElement('div');
+            diagram.className = 'mermaid';
+            diagram.id = 'mermaid-diagram-' + diagrams.length;
+            diagram.textContent = source;
+            container.replaceWith(diagram);
+            diagrams.push(diagram);
+          });
+          if (!diagrams.length) return;
+          window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+          window.mermaid.run({ nodes: diagrams });
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', renderMermaid);
+        } else {
+          renderMermaid();
+        }
+      }());
+    </script>
   <% } %>
 </article>
