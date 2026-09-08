@@ -4,8 +4,8 @@ date: 2026-09-08 09:00:00
 categories:
   - agentdocs
 tags:
-  - 编译栈
-  - AI 系统
+  - compiler-stack
+  - ai-systems
 ---
 
 # Triton-Ascend 技术路线静态调研报告

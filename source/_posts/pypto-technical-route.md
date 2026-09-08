@@ -4,8 +4,8 @@ date: 2026-09-07 09:00:00
 categories:
   - agentdocs
 tags:
-  - 编译栈
-  - AI 系统
+  - compiler-stack
+  - ai-systems
 ---
 
 # PyPTO 编译器技术路线与差异化竞争力调研
