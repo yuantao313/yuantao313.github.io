@@ -101,14 +101,13 @@ JSON、Excel、TensorFlow、IR 和 MindSpore 输入通过不同的 [`OpInfo`](ht
 
 `gen` 面向工程创建，`compile` 面向生成工程的后续构建，`sim` 面向模拟器数据解析。三条路径由 [`msopgen.py`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/msopgen.py) 统一承接，使算子开发工具从“项目脚手架”延伸到编译交付和底层流水线信息分析。
 
-## 相比同类产品的实现差异
+## 技术边界与工程定位
 
-与通用代码生成器相比，msopgen 的模板输入不是自由文本，而是带有算子输入输出、属性、数据类型、计算单元和框架信息的结构化算子原型；生成结果也不是单个源文件，而是围绕 CANN 自定义算子交付约定组织的工程。
+msopgen 是 CANN 体系中具有明确职责边界的自研工程生成器，不存在一个能够完整对应其“算子原型适配 + 计算单元分派 + 模板装配 + CANN 工程交付”链路的通用同类项目。因此本文不强行进行横向产品比较，而是说明它自身的不可替代性。
 
-与只提供 C++/Ascend C API 的库相比，msopgen 把开发者从“手工建立 Host、Kernel、配置和构建目录”的阶段直接带入可继续修改的工程。它把 CANN 和 Ascend C 的复杂性放在生成工程的构建边界，而不是在 msopgen 内部重做目标编译器。
+它的核心边界是把结构化算子描述转换成可继续开发的 Host、Kernel、配置和构建工程；它不重新实现 Ascend C 编译器，也不取代 CANN 的目标编译和运行时。这个边界由 [`msopgen/msopgen.py`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/msopgen.py)、[`OpInfoParser`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_info_parser.py) 和 [`OpFileGenerator`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file_generator.py) 分别落在命令、输入协议和工程生成三个层次。
 
-与只支持单一目标后端的脚手架相比，msopgen 将 AI Core、Vector Core、AI CPU 和 MindSpore 专用工程分派显式写入代码；目标计算单元变化会进入工程生成器选择，而不是仅通过一个模板变量隐式切换。
-
+msopgen 的独特性来自它把 CANN 算子开发中的隐含工程约定显式化：输入格式、框架类型、目标计算单元、模板版本和生成结果被串成一个可追踪的生产链路。尤其是 [`setup.py`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/setup.py) 同时记录主仓与 `asc-tools` 模板依赖 revision，使生成器逻辑和工程模板能够独立演进但仍可追溯。
 ## 复用的公共组件
 
 这里有价值的复用主要是**模板协议和工具链资产的工程化复用**，不是 Python、CANN 或 setuptools 这些普通底座依赖。
