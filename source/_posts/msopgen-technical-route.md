@@ -108,6 +108,57 @@ msopgen 是 CANN 体系中具有明确职责边界的自研工程生成器，不
 它的核心边界是把结构化算子描述转换成可继续开发的 Host、Kernel、配置和构建工程；它不重新实现 Ascend C 编译器，也不取代 CANN 的目标编译和运行时。这个边界由 [`msopgen/msopgen.py`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/msopgen.py)、[`OpInfoParser`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_info_parser.py) 和 [`OpFileGenerator`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file_generator.py) 分别落在命令、输入协议和工程生成三个层次。
 
 msopgen 的独特性来自它把 CANN 算子开发中的隐含工程约定显式化：输入格式、框架类型、目标计算单元、模板版本和生成结果被串成一个可追踪的生产链路。尤其是 [`setup.py`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/setup.py) 同时记录主仓与 `asc-tools` 模板依赖 revision，使生成器逻辑和工程模板能够独立演进但仍可追溯。
+## 生成工程的编译与运行结构
+
+msopgen 生成的不是停留在源码层面的目录骨架，而是一个需要继续交给 CANN/Ascend C 工具链编译和装载的算子交付工程。以 AI Core C++ 路径为例，生成器在 [`OPFile._generate_project()`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file.py#L117-L158) 中复制 Ascend C 模板，再由 [`_new_operator()`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file.py#L160-L164) 依次生成实现、框架插件、算子信息配置和算子原型。
+
+| Generated layer | Evidence | Runtime/build role |
+|:---|:---|:---|
+| Kernel source | [`OpFileAiCore._generate_cpp_impl()`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file_aicore.py#L132-L163) | 生成 `kernel_operator.h`、tiling 头文件和 `__aicore__` Kernel 入口 |
+| Tiling data | [`REGISTER_TILING_DEFAULT` / `GET_TILING_DATA`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file_aicore.py#L139-L158) | Kernel 从 Host 传入的 tiling buffer 读取运行参数 |
+| Host/operator metadata | [`OPTmpl.IR_H_HEAD`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_tmpl.py#L55-L92) | 生成 GE/算子原型声明、输入输出和属性描述 |
+| Framework plugin | [`_generate_plugin()`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file.py#L166-L180) | 为 TensorFlow、ONNX、Caffe 等框架生成注册和参数解析边界 |
+| Operator info config | [`generate_info_cfg()`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file_aicore.py#L102-L130) | 生成输入输出、属性、二进制文件和接口名配置 |
+| Build template | [`OpFileCompile.compile()`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file_compile.py#L87-L108) | 检查交付目录、补齐模板、替换 CANN 路径并执行 `build.sh` |
+| Target artifacts | [`_copy_deliverable_cmake_file()`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file_compile.py#L165-L191) | 为 TBE、AI CPU 和 framework plugin 目录补充 CMake 文件 |
+
+```mermaid
+flowchart LR
+    A[Generated operator project] --> B[Kernel source and tiling]
+    A --> C[Host / GE operator prototype]
+    A --> D[Framework plugin]
+    A --> E[Operator info config]
+    A --> F[build.sh and CMake]
+    B --> G[Ascend C / CCE compiler]
+    C --> F
+    D --> H[Framework registration]
+    E --> H
+    F --> I[Operator package / shared artifacts]
+    I --> J[CANN loader and runtime]
+    J --> K[Ascend device execution]
+```
+
+编译运行边界可以概括为：`msopgen gen` 只负责创建和填充工程；`msopgen compile` 负责检查工程交付物、从 CANN 安装目录复制缺失模板并执行工程内的 [`build.sh`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file_compile.py#L87-L108)；随后由生成工程的 CMake、Ascend C/CCE 编译器、CANN 库和运行时完成目标产物生成、加载与设备执行。msopgen 本身不承担 Kernel 内部调度优化，也不替代 CANN 运行时。
+
+```mermaid
+sequenceDiagram
+    participant User as Developer
+    participant Gen as msopgen gen
+    participant Project as Generated project
+    participant Compile as msopgen compile / build.sh
+    participant CANN as CANN and Ascend C toolchain
+    participant Device as Ascend device
+    User->>Gen: Provide operator prototype and compute unit
+    Gen->>Project: Generate Kernel, Host, plugin, config and build files
+    User->>Project: Implement Kernel and tiling logic
+    User->>Compile: Compile project
+    Compile->>Project: Check deliverables and copy missing templates
+    Project->>CANN: Invoke CMake and target compiler
+    CANN-->>Project: Produce operator artifacts
+    Project->>Device: Load and launch through CANN runtime
+    Device-->>User: Execute operator and return results
+```
+
 ## 复用的公共组件
 
 这里有价值的复用主要是**模板协议和工具链资产的工程化复用**，不是 Python、CANN 或 setuptools 这些普通底座依赖。
