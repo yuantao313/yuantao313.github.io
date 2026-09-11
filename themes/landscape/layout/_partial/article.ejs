@@ -4,6 +4,11 @@
       <header class="article-header">
         <%- partial('post/title', {class_name: 'p-name article-title'}) %>
       </header>
+      <% if (post.description) { %>
+        <div class="article-entry article-summary" itemprop="description">
+          <p><%= post.description %></p>
+        </div>
+      <% } %>
     </div>
   <% } else { %>
     <div class="article-meta" aria-label="Article metadata">
@@ -29,10 +34,13 @@
       (function () {
         function renderMermaid() {
           if (!window.mermaid) return;
-          var blocks = document.querySelectorAll('.article-entry pre code.language-mermaid, .article-entry figure.highlight pre');
+          var blocks = document.querySelectorAll('.article-entry pre code.language-mermaid, .article-entry figure.highlight td.code > pre');
           var diagrams = [];
           blocks.forEach(function (code) {
-            var source = code.textContent.trim();
+            var lines = code.querySelectorAll('.line');
+            var source = lines.length
+              ? Array.prototype.map.call(lines, function (line) { return line.textContent; }).join('\n').trim()
+              : code.textContent.trim();
             if (!/^(flowchart|graph|sequenceDiagram)\b/.test(source)) return;
             var container = code.closest('figure') || code.parentElement;
             var diagram = document.createElement('div');

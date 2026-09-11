@@ -1,6 +1,7 @@
 ---
 title: CANN msopgen 工程架构：从算子原型到可编译工程的生成链路
 date: 2026-09-08 23:30:00
+description: 解析 CANN msopgen 如何把算子原型转换为可继续开发、编译和交付的自定义算子工程。
 tags:
   - cann
   - operator-development
@@ -25,6 +26,8 @@ categories:
 
 msopgen 的核心不是一个算子编译器后端，而是一个**工程生成器和交付前置层**：它读取 JSON、Excel 或框架相关的算子信息，建立统一的算子描述对象，依据框架、计算单元和语言选择工程模板，再生成 Host、Kernel、配置、构建文件及配套目录。真正的 Ascend C/CANN 编译由生成工程中的构建链继续完成。
 
+<!-- more -->
+
 ## 工程结构
 
 msopgen 的代码按“命令控制层 → 输入描述解析层 → 工程类型选择层 → 模板渲染层 → 编译/模拟辅助层”组织。生成器本身不负责重新实现 Ascend C 编译器，而是把算子原型映射为一套与 CANN 工具链约定一致的工程文件。
@@ -44,21 +47,21 @@ msopgen 的代码按“命令控制层 → 输入描述解析层 → 工程类�
 
 ```mermaid
 flowchart LR
-    A[msopgen CLI] --> B[ArgParser]
-    B --> C{Command}
-    C -->|gen| D[OpInfoParser]
-    D --> E[Unified operator info]
-    E --> F{Framework / compute unit}
-    F --> G[AI Core generator]
-    F --> H[Vector Core generator]
-    F --> I[AI CPU generator]
-    G --> J[Template assets]
+    A["msopgen CLI"] --> B["ArgParser"]
+    B --> C{"Command"}
+    C -->|gen| D["OpInfoParser"]
+    D --> E["Unified operator info"]
+    E --> F{"Framework / compute unit"}
+    F --> G["AI Core generator"]
+    F --> H["Vector Core generator"]
+    F --> I["AI CPU generator"]
+    G --> J["Template assets"]
     H --> J
     I --> J
-    J --> K[Generated operator project]
-    C -->|compile| L[OpFileCompile]
-    L --> M[CANN / Ascend compiler boundary]
-    C -->|sim| N[Simulator dump parser]
+    J --> K["Generated operator project"]
+    C -->|compile| L["OpFileCompile"]
+    L --> M["CANN / Ascend compiler boundary"]
+    C -->|sim| N["Simulator dump parser"]
 ```
 
 ### 命令控制层
@@ -124,18 +127,18 @@ msopgen 生成的不是停留在源码层面的目录骨架，而是一个需要
 
 ```mermaid
 flowchart LR
-    A[Generated operator project] --> B[Kernel source and tiling]
-    A --> C[Host / GE operator prototype]
-    A --> D[Framework plugin]
-    A --> E[Operator info config]
-    A --> F[build.sh and CMake]
-    B --> G[Ascend C / CCE compiler]
+    A["Generated operator project"] --> B["Kernel source and tiling"]
+    A --> C["Host / GE operator prototype"]
+    A --> D["Framework plugin"]
+    A --> E["Operator info config"]
+    A --> F["build.sh and CMake"]
+    B --> G["Ascend C / CCE compiler"]
     C --> F
-    D --> H[Framework registration]
+    D --> H["Framework registration"]
     E --> H
-    F --> I[Operator package / shared artifacts]
-    I --> J[CANN loader and runtime]
-    J --> K[Ascend device execution]
+    F --> I["Operator package / shared artifacts"]
+    I --> J["CANN loader and runtime"]
+    J --> K["Ascend device execution"]
 ```
 
 编译运行边界可以概括为：`msopgen gen` 只负责创建和填充工程；`msopgen compile` 负责检查工程交付物、从 CANN 安装目录复制缺失模板并执行工程内的 [`build.sh`](https://gitcode.com/Ascend/msopgen/blob/dd96cdfb2768a89a063db4cee7c760d2c9c4870a/msopgen/interface/op_file_compile.py#L87-L108)；随后由生成工程的 CMake、Ascend C/CCE 编译器、CANN 库和运行时完成目标产物生成、加载与设备执行。msopgen 本身不承担 Kernel 内部调度优化，也不替代 CANN 运行时。

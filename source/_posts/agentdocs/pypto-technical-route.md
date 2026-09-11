@@ -1,6 +1,7 @@
 ---
 title: PyPTO 技术路线与差异化竞争力
 date: 2026-09-08 09:00:00
+description: 解析 PyPTO 从 Tensor 级 Python 程序到硬件感知 Tile 调度、代码生成和昇腾设备执行的双路线架构。
 categories:
   - agentdocs
 tags:
@@ -35,6 +36,8 @@ PyPTO 是面向昇腾 AI 处理器的高性能编程框架。它要解决的不�
 
 PyPTO Pro 则由 [`KernelDef::parse_target_program`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/kernel.py) 和 [`ASTParser::parse_function`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/language/parser/_ast_parser.py) 建图，经 [`CCECodegen::GenerateSingle`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/pypto_pro/codegen/cce/cce_codegen.cpp) 执行 [`ConvertToSSA`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/framework/src/interface/ir/transforms/convert_to_ssa_pass.cpp) 并直接生成 CCE/PTO C++。[`JitCompileConfig`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/compile_config.py) 集中描述 A2/A3、A5 的核型、内存模型、Bisheng 参数和运行库依赖，JIT 最终由 [`_run_bisheng`](https://gitcode.com/cann/pypto/blob/5d6afbe0dc470aaf692d23e4c3b73d5fa461acf5/python/pypto_pro/runtime/jit.py) 产出可加载的共享库。
 
+<!-- more -->
+
 ## 工程结构
 
 PyPTO 的工程边界按“Python 编程入口 → 多级 IR 与图抽象 → Pass/调度 → CCE/PTO CodeGen → Bisheng/CANN 工具链 → 设备执行”组织。关键层不是简单的 Python 绑定，而是由 Tensor/Tile/Block 图逐步形成硬件感知的执行图。
@@ -50,12 +53,12 @@ PyPTO 的工程边界按“Python 编程入口 → 多级 IR 与图抽象 → Pa
 
 ```mermaid
 flowchart LR
-    A[Python/PIL frontend] --> B[Tensor and symbolic IR]
-    B --> C[Tensor / Tile / Block graph]
-    C --> D[Pass manager and scheduling]
-    D --> E[CCE/PTO NPU CodeGen]
-    E --> F[Bisheng and CANN toolchain]
-    F --> G[Device launcher]
+    A["Python/PIL frontend"] --> B["Tensor and symbolic IR"]
+    B --> C["Tensor / Tile / Block graph"]
+    C --> D["Pass manager and scheduling"]
+    D --> E["CCE/PTO NPU CodeGen"]
+    E --> F["Bisheng and CANN toolchain"]
+    F --> G["Device launcher"]
 ```
 
 

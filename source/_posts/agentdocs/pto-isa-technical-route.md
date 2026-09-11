@@ -1,6 +1,7 @@
 ---
 title: PTO-ISA：面向昇腾 Tile 编程的虚拟指令集与实现体系
 date: 2026-09-08 22:30:00
+description: 解析 PTO-ISA 如何以统一的 Tile 指令和数据模型连接上层框架、跨代后端、通信与性能工具链。
 tags:
   - tile-programming
   - isa
@@ -27,6 +28,8 @@ categories:
 
 官方文档将 PTO 定位为面向 tile 的虚拟 ISA，目前覆盖计算、数据搬运、同步、量化、卷积、矩阵和通信等指令族，并已被 [PyPTO](https://gitcode.com/cann/pypto)、[TileLang Ascend](https://github.com/tile-ai/tilelang-ascend) 等上层项目集成。
 
+<!-- more -->
+
 ## 工程结构
 
 PTO-ISA 的工程结构是“公共指令契约 + 后端实现 + kernel 示例 + 文档/工具链”的分层，而不是一个单一的硬件指令头文件集合。
@@ -45,16 +48,16 @@ PTO-ISA 的工程结构是“公共指令契约 + 后端实现 + kernel 示例 +
 
 ```mermaid
 flowchart LR
-    A[上层框架 / Kernel] --> B[pto-inst.hpp]
-    B --> C[common Tile / layout / memory]
-    C --> D[统一 PTO 指令 API]
-    D --> E{后端选择}
-    E --> F[CPU Simulator / Stub]
-    E --> G[A2 / A3 backend]
-    E --> H[A5 backend]
-    E --> I[Kirin backend]
-    D --> J[Communication ISA]
-    G --> K[Ascend CANN toolchain]
+    A["上层框架 / Kernel"] --> B["pto-inst.hpp"]
+    B --> C["common Tile / layout / memory"]
+    C --> D["统一 PTO 指令 API"]
+    D --> E{"后端选择"}
+    E --> F["CPU Simulator / Stub"]
+    E --> G["A2 / A3 backend"]
+    E --> H["A5 backend"]
+    E --> I["Kirin backend"]
+    D --> J["Communication ISA"]
+    G --> K["Ascend CANN toolchain"]
     H --> K
     I --> K
 ```

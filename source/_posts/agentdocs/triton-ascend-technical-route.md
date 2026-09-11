@@ -1,6 +1,7 @@
 ---
 title: Triton-Ascend 技术路线与差异化竞争力
 date: 2026-09-08 09:00:00
+description: 解析 Triton-Ascend 如何复用 Triton 前端，并在 TTIR 之后建立面向昇腾 NPU 的编译、优化和执行体系。
 categories:
   - agentdocs
 tags:
@@ -26,6 +27,8 @@ Python kernel → TTIR → structure/unstructure → Linalg/HIVM/HFusion
 
 [ASTSource.make_ir()](https://github.com/triton-lang/triton-ascend/blob/b64287188046fe7bb0cfd424ee3e389f96a7affa/python/triton/compiler/compiler.py#L78) 生成 TTIR，[compile()](https://github.com/triton-lang/triton-ascend/blob/b64287188046fe7bb0cfd424ee3e389f96a7affa/python/triton/compiler/compiler.py#L226) 发现后端，[AscendBackend.add_stages()](https://github.com/triton-lang/triton-ascend/blob/b64287188046fe7bb0cfd424ee3e389f96a7affa/third_party/ascend/backend/compiler.py#L1388) 装配普通 `ttir → ttadapter → mlirbc → bcmlir → npubin` 路径；A5 pure-SIMT 则直接 `ttir → npubin`。项目实际覆盖语言扩展、NPU lowering/优化以及设备加载与发射，而非只替换 launcher。
 
+<!-- more -->
+
 ## 工程结构
 
 Triton-Ascend 保持 Triton 的前端入口和通用编译设施，在后端建立面向 Ascend 的分层实现：Python kernel 先进入 TTIR，再经过 Ascend 专属 lowering、结构化优化和硬件代码生成，最终由 `npubin`、`torch_npu` 与 CANN 完成加载和发射。
@@ -41,13 +44,13 @@ Triton-Ascend 保持 Triton 的前端入口和通用编译设施，在后端建�
 
 ```mermaid
 flowchart LR
-    A[Python Triton kernel] --> B[TTIR]
-    B --> C[Ascend backend stages]
-    C --> D[Ascend dialect and structured IR]
-    D --> E[Cube / Vector / UB pipeline]
-    E --> F[MLIR bytecode and BiShengIR]
-    F --> G[npubin]
-    G --> H[torch_npu and CANN launch]
+    A["Python Triton kernel"] --> B["TTIR"]
+    B --> C["Ascend backend stages"]
+    C --> D["Ascend dialect and structured IR"]
+    D --> E["Cube / Vector / UB pipeline"]
+    E --> F["MLIR bytecode and BiShengIR"]
+    F --> G["npubin"]
+    G --> H["torch_npu and CANN launch"]
 ```
 
 
