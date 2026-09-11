@@ -11,15 +11,16 @@
       <% } %>
     </div>
   <% } else { %>
-    <div class="article-meta" aria-label="Article metadata">
-      <span class="meta-item"><strong>Date:</strong> <%= post.date.format('YYYY-MM-DD') %></span>
-      <% if (post.categories && post.categories.length) { %>
+    <% var isAgentDoc = post.categories && post.categories.map(category => category.name).includes('agentdocs'); %>
+    <% if (isAgentDoc) { %>
+      <div class="article-meta" aria-label="Article metadata">
+        <span class="meta-item"><strong>Date:</strong> <%= post.date.format('YYYY-MM-DD') %></span>
         <span class="meta-item"><strong>Category:</strong> <%= post.categories.map(category => category.name).join(', ') %></span>
-      <% } %>
-      <% if (post.tags && post.tags.length) { %>
-        <span class="meta-item"><strong>Tags:</strong> <%= post.tags.map(tag => tag.name).join(', ') %></span>
-      <% } %>
-    </div>
+        <% if (post.tags && post.tags.length) { %>
+          <span class="meta-item"><strong>Tags:</strong> <%= post.tags.map(tag => tag.name).join(', ') %></span>
+        <% } %>
+      </div>
+    <% } %>
     <div class="article-inner">
       <%- partial('post/gallery') %>
       <header class="article-header">
