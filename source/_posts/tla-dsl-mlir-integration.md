@@ -1,16 +1,16 @@
 ---
-title: 执行式 DSL 的 MLIR 自包含集成
+title: CATLASS TLA DSL 的 MLIR 自包含集成
 date: 2026-09-16 10:05:00
-description: 执行式 DSL 如何将私有化 MLIR Python bindings、自定义方言绑定与降级 pipeline 整合为自包含 wheel，并梳理端到端编译链路。
+description: CATLASS TLA DSL 如何将私有化 MLIR Python bindings、自定义方言绑定与降级 pipeline 整合为自包含 wheel，并梳理端到端编译链路。
 tags:
   - mlir
   - python-bindings
   - compiler-stack
 ---
 
-# 执行式 DSL 的 MLIR 自包含集成
+# CATLASS TLA DSL 的 MLIR 自包含集成
 
-以一个面向 AI 加速器的执行式 DSL（下称 TLA DSL）为例，MLIR bindings 的集成方式可从「依赖外部 mlir 包」改造为「单一 wheel 自包含」，同时整条编译链路也随之收敛。MLIR 打包机制本身（三层架构、AddMLIRPython.cmake、私有命名空间、聚合 CAPI）见《[MLIR Python Bindings 打包机制解析](/posts/mlir-python-packaging/)》。
+以 CATLASS TLA DSL——一个面向 AI 加速器的执行式 DSL——为例，MLIR bindings 的集成方式可从「依赖外部 mlir 包」改造为「单一 wheel 自包含」，同时整条编译链路也随之收敛。MLIR 打包机制本身（三层架构、AddMLIRPython.cmake、私有命名空间、聚合 CAPI）见《[MLIR Python Bindings 打包机制解析](/posts/mlir-python-packaging/)》。
 
 <!-- more -->
 
@@ -23,7 +23,7 @@ tags:
 ```mermaid
 flowchart TD
     U1["用户环境"] -->|"额外依赖"| P1["pip install mlir<br/>(版本须与 DSL 内部 LLVM 完全一致)"]
-    U1 --> P2["DSL 包"]
+    U1 --> P2["CATLASS TLA DSL 包"]
     P2 -->|"手工维护的绑定"| P3["独立脚本生成方言 op 绑定"]
     P2 -->|"双轨导入"| P4["_mlir_bindings 与 mlir 包并存"]
 ```
@@ -56,7 +56,7 @@ flowchart TD
     TB --> AGG
 ```
 
-背景说明：该 DSL 的 MLIR 本体不直接取自 llvm-project 上游，而是经由加速器 IR 子模块子模块获取——其中除 MLIR/LLVM 外，还包含一族面向目标硬件的下游方言与 codegen 工具链。即经由该子模块获取 MLIR，构建前需先编译该子模块。
+背景说明：CATLASS TLA DSL 的 MLIR 本体不直接取自 llvm-project 上游，而是经由加速器 IR 子模块获取——其中除 MLIR/LLVM 外，还包含一族面向目标硬件的下游方言与 codegen 工具链。即经由该子模块获取 MLIR，构建前需先编译该子模块。
 
 ## 三、代码布局
 
@@ -200,7 +200,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    subgraph pkg["DSL 包（wheel 交付）"]
+    subgraph pkg["CATLASS TLA DSL 包（wheel 交付）"]
         P1["前端 Python"]
         P2["execution_lowering.py<br/>执行式前端"]
         P3["compiler_bridge + TypeBridge"]
